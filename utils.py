@@ -3,14 +3,14 @@ import string
 
 
 def random_string(length: int) -> str:
-    length = max(1, length)  # Гарантируем минимум 1 символ
+    length = max(1, length)
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 def parse_data_size(size_str: str) -> int:
-    if not size_str or size_str == "0":
+    if not size_str or size_str.strip() == "0":
         return 0
-    size_str = size_str.lower().strip()
+    size_str = size_str.strip().lower()
     try:
         if size_str.endswith('k') or size_str.endswith('kb'):
             val = int(size_str[:-1])
@@ -27,7 +27,7 @@ def parse_data_size(size_str: str) -> int:
 
 def generate_headers(host: str, useragents: list, referers: list, use_junk: bool = False,
                      use_random_host: bool = False, header_flood: bool = False) -> dict:
-    ua = random.choice(useragents) if useragents else f"Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
+    ua = random.choice(useragents) if useragents else "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
     referer = random.choice(referers)
 
     headers = {

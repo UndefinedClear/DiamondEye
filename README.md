@@ -158,7 +158,7 @@
 ==================================================
 📦 УСТАНОВКА НУЖНЫХ МОДУЛЕЙ
 
-pip install --force-reinstall httpx[http2] colorama matplotlib
+pip install --force-reinstall requirements.txt
 ==================================================
 
 ==================================================

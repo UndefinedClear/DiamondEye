@@ -1,41 +1,36 @@
 import argparse
+from utils import parse_data_size
 
 
 def validate_data_size(value):
-    try:
-        size_str = value.lower().strip()
-        if size_str.endswith('k') or size_str.endswith('kb'):
-            int(size_str[:-1])
-        elif size_str.endswith('m') or size_str.endswith('mb'):
-            int(size_str[:-1])
-        else:
-            int(size_str)
-        return value
-    except (ValueError, TypeError):
+    size = parse_data_size(value)
+    if size < 0:
         raise argparse.ArgumentTypeError("Invalid data size: use 1024, 64k, 1m")
+    return size
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="DiamondEye v6.7 — HTTP Load Tester")
     parser.add_argument('url', help='Target URL (e.g. http://127.0.0.1)')
-    parser.add_argument('-w', '--workers', type=int, default=10)
-    parser.add_argument('-s', '--sockets', type=int, default=500)
+    parser.add_argument('-w', '--workers', type=int, default=10, help='Number of worker tasks')
+    parser.add_argument('-s', '--sockets', type=int, default=100, help='Number of connections per worker')
     parser.add_argument('-m', '--methods', help='GET,POST,PUT,PATCH,ALL')
     parser.add_argument('-u', '--useragents', help='User-Agent file')
     parser.add_argument('-n', '--no-ssl-check', action='store_true')
-    parser.add_argument('--proxy')
+    parser.add_argument('--proxy', help='HTTP/HTTPS proxy (e.g. http://127.0.0.1:8080)')
     parser.add_argument('-d', '--debug', action='store_true')
-    parser.add_argument('-l', '--log')
-    parser.add_argument('--json')
-    parser.add_argument('--plot')
-    parser.add_argument('--http2', action='store_true')
-    parser.add_argument('--junk', action='store_true')
-    parser.add_argument('--random-host', action='store_true')
-    parser.add_argument('--slow', type=float, default=0.0)
-    parser.add_argument('--extreme', action='store_true')
-    parser.add_argument('--data-size', type=validate_data_size, default="0")
-    parser.add_argument('--flood', action='store_true')
-    parser.add_argument('--path-fuzz', action='store_true')
-    parser.add_argument('--header-flood', action='store_true')
-    parser.add_argument('--method-fuzz', action='store_true')
+    parser.add_argument('-l', '--log', help='Save text report')
+    parser.add_argument('--json', help='Save JSON report')
+    parser.add_argument('--plot', help='Save RPS plot (requires matplotlib)')
+    parser.add_argument('--http2', action='store_true', help='Use HTTP/2 (not with --extreme)')
+    parser.add_argument('--junk', action='store_true', help='Add random X-* headers')
+    parser.add_argument('--random-host', action='store_true', help='Random subdomain in Host header')
+    parser.add_argument('--slow', type=float, default=0.0, help='Fraction of slow requests (0.05 = 5%)')
+    parser.add_argument('--extreme', action='store_true', help='New TCP connection per request')
+    parser.add_argument('--data-size', type=validate_data_size, default=0, help='Body size: 64k, 1m')
+    parser.add_argument('--flood', action='store_true', help='Minimal delay → max RPS')
+    parser.add_argument('--path-fuzz', action='store_true', help='Random deep paths')
+    parser.add_argument('--header-flood', action='store_true', help='Up to 20 junk headers')
+    parser.add_argument('--method-fuzz', action='store_true', help='Use PROPFIND, REPORT, LOCK')
+
     return parser.parse_args()
