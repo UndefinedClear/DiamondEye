@@ -1,0 +1,11 @@
+Googlebot/2.1 (+http://www.google.com/bot.html)
+Bingbot/2.0 (+http://www.bing.com/bingbot.htm)
+Slurp (http://help.yahoo.com/help/us/ysearch/slurp)
+DuckDuckBot/1.0; (+http://duckduckgo.com/duckduckbot.html)
+YandexBot/3.0; (+http://yandex.com/bots)
+Baiduspider/2.0 (+http://www.baidu.com/search/spider.html)
+Sogou web spider/4.0(+http://www.sogou.com/docs/help/webmasters.htm#07)
+FacebookExternalHit/1.1 (+http://www.facebook.com/externalhit_uatext.php)
+DiscordBot /1.1
+Twitterbot/1.0
+LinkedInBot/1.0 (compatible; Mozilla/5.0; Googlebot/2.1; +https://www.linkedin.com/uas/lms/lp/crawler)

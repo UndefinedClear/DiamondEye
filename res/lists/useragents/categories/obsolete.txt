@@ -1,0 +1,12 @@
+Mozilla/1.22 (compatible; MSIE 5.01; PalmOS 3.0) EudoraWeb 2.1
+Mozilla/4.0 (compatible; MSIE 4.01; Windows CE; PPC; 240x320)
+Mozilla/2.0 (compatible; MSIE 3.02; Windows CE; PPC; 240x320)
+Mozilla/5.0 (X11; U; Linux armv6l; rv 1.8.1.5pre) Gecko/20070619 Minimo/0.020
+Mozilla/5.0 (Windows; U; Windows CE 5.1; rv:1.8.1a3) Gecko/20060610 Minimo/0.016
+Xiino/1.0.9E [en] (v. 4.1; 153x130; g4)
+WM5 PIE
+Mozilla/2.0 (compatible; Elaine/3.0)
+Mozilla/4.74 [en] (X11; I; ProxiNet)
+Mozilla/4.76 [en] (PalmOS; U; WebPro/3.0; Palm-Arz1)
+Mozilla/4.0 (compatible; MSIE 6.0; Windows 95; PalmSource; Blazer 3.0) 16;160x160
+UPG1 UP/4.0 (compatible; Blazer 1.0)

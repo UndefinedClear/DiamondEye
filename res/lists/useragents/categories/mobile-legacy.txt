@@ -1,0 +1,26 @@
+Mozilla/5.0 (Danger hiptop 3.4; U; AvantGo 3.2)
+DoCoMo/1.0/P502i/c10 (Google CHTML Proxy/1.0)
+KDDI-KC31 UP.Browser/6.2.0.5 (GUI) MMP/2.0
+UP.Browser/3.04-TS14 UP.Link/3.4.4
+Vodafone/1.0/V802SE/SEJ001 Browser/SEMC-Browser/4.1
+J-PHONE/5.0/V801SA/SN123456789012345 SA/0001JP Profile/MIDP-1.0
+Mozilla/5.0 (PDA; NF35WMPRO/1.0; like Gecko) NetFront/3.5
+Opera/9.51 Beta (Microsoft Windows; PPC; Opera Mobi/1718; U; en)
+BenQ-CF61/1.00/WAP2.0/MIDP2.0/CLDC1.0 UP.Browser/6.3.0.4.c.1.102 (GUI) MMP/2.0
+Mozilla/5.0 (BlackBerry; U; BlackBerry 9700; en-US) AppleWebKit/534.8+ (KHTML, like Gecko) Version/6.0.0.448 Mobile Safari/534.8+
+BlackBerry9650/5.0.0.732 Profile/MIDP-2.1 Configuration/CLDC-1.1 VendorID/105
+Opera/9.50 (J2ME/MIDP; Opera Mini/4.0.10031/298; U; en)
+HTC_Touch_HD_T8282 Mozilla/4.0 (compatible; MSIE 6.0; Windows CE; IEMobile 7.11)
+Mozilla/4.0 (compatible; MSIE 6.0; Windows Phone OS 7.0; Trident/3.1; IEMobile/7.0; HTC; 7 Trophy)
+LGE-LG290C/1.0[TF268435459307028557000000012602392946] UP.Browser/6.2.3.8 (GUI) MMP/2.0
+Mozilla/5.0 (Linux; U; Android 2.3.5; en-gb; HTC Desire HD A9191 Build/GRJ90) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1
+Nokia2700c-2/2.0 (09.80) Profile/MIDP-2.1 Configuration/CLDC-1.1 UCWEB/2.0(Java; U; MIDP-2.0; en-US; nokia2700c-2) U2/1.0.0 UCBrowser/8.8.1.252 U2/1.0.0 Mobile
+Opera/9.80 (J2ME/MIDP; Opera Mini/4.1.15082/22.414; U; en) Presto/2.5.25 Version/10.54
+Mozilla/5.0 (SymbianOS/9.4; Series60/5.0 Nokia5800d-1/60.0.003; Profile/MIDP-2.1 Configuration/CLDC-1.1 ) AppleWebKit/533.4 (KHTML, like Gecko) NokiaBrowser/7.3.1.33 Mobile Safari/533.4 3gpp-gba
+NokiaN70-1/5.0737.3.0.1 Series60/2.8 Profile/MIDP-2.0 Configuration/CLDC-1.1/UC Browser7.8.0.95/27/352
+Mozilla/4.0 (compatible; MSIE 6.0; ; Linux armv5tejl; U) Opera 8.02 [en_US] Maemo browser 0.4.31 N770/SU-18
+PalmCentro/v0001 Mozilla/4.0 (compatible; MSIE 6.0; Windows 98; PalmSource/Palm-D061; Blazer/4.5) 16;320x320
+Mozilla/4.0 (compatible; MSIE 6.0; Windows 98; PalmSource/Palm-D053; Blazer/4.5) 16;320x320 UP.Link/6.3.1.17.0
+Mozilla/5.0 (webOS/1.4.5; U; en-US) AppleWebKit/532.2 (KHTML, like Gecko) Version/1.0 Safari/532.2 Pre/1.0
+SAMSUNG-SGH-A817/A817UCKG3; Mozilla/5.0 (Profile/MIDP-2.0 Configuration/CLDC-1.1; Opera Mini/att/4.2.21648; U; en-US) Opera 9.50
+SonyEricssonT280i/R1CB002 TelecaBrowser/Q04C1-1 Profile/MIDP-2.0 Configuration/CLDC-1.1
