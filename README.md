@@ -24,12 +24,15 @@
   python main.py <URL> [OPTIONS]
 
 Пример:
+```bash
   python main.py https://127.0.0.1:8443 --http2 --junk --flood -w 500 -s 2000 -l report
+```
 
 ==================================================
 
 ## ⚡ ДОСТУПНЫЕ ФЛАГИ
 
+```text
 -w, --workers <число>
     Количество параллельных воркеров
     По умолчанию: 10
@@ -107,33 +110,42 @@
 
 --plot <файл>
     Сохраняет график RPS (требуется matplotlib)
-
+```
 ==================================================
 
 ## 📌 ПРИМЕРЫ ИСПОЛЬЗОВАНИЯ
 
 1. Максимальный RPS (HTTP/2 + flood)
+```bash
    python main.py https://target.com \
      --http2 --junk --flood --path-fuzz \
      -w 500 -s 2000
+```
 
 2. Экстремальная нагрузка на TCP-стек
+```bash
+
    python main.py https://target.com \
      --extreme --flood --junk \
      --data-size 64k \
      -w 200 -s 2000
+```
 
 3. Полный фаззинг (макс. воздействие)
+```bash
    python main.py https://127.0.0.1:8000 \
      --http2 --junk --header-flood --random-host \
      --path-fuzz --method-fuzz \
      --data-size 1m --flood \
      -w 100 -s 1000
+```
 
 4. Тест с отчётом
+```bash
    python main.py https://test.local \
      --http2 -w 100 -s 500 \
      -l report.log --json report.json --plot rps.png
+```
 
 
 ## 🛡️ ПРЕДУПРЕЖДЕНИЯ
