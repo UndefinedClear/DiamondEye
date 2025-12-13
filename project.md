@@ -1,4 +1,4 @@
-# GoldenEye Async Load Tool
+# DiamondEye Async Load Tool
 
 ## Описание
 

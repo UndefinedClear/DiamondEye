@@ -9,7 +9,7 @@ from utils import generate_headers, parse_data_size
 from colorama import Fore, Style
 
 
-class GoldenEyeAttack:
+class DiamondEyeAttack:
     def __init__(self, url: str, workers: int, sockets: int, methods: List[str],
                  useragents: List[str], no_ssl_check: bool, debug: bool, proxy: str = None,
                  use_http2: bool = False, slow_rate: float = 0.0, extreme: bool = False,

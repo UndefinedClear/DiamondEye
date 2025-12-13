@@ -17,7 +17,7 @@ except ImportError:
     MATPLOTLIB_AVAILABLE = False
 
 from args import parse_args
-from attack import GoldenEyeAttack
+from attack import DiamondEyeAttack
 from colorama import Fore, Style
 
 
@@ -65,7 +65,7 @@ async def main():
     useragents = load_useragents(args.useragents) if args.useragents else []
     methods = parse_methods(args.methods)
 
-    attack = GoldenEyeAttack(
+    attack = DiamondEyeAttack(
         url=args.url,
         workers=args.workers,
         sockets=args.sockets,
