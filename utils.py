@@ -13,14 +13,14 @@ def parse_data_size(size_str: str) -> int:
     size_str = size_str.strip().lower()
     try:
         if size_str.endswith('k') or size_str.endswith('kb'):
-            val = int(size_str[:-1])
-            return max(0, val * 1024)
+            val = float(size_str[:-1].strip())
+            return int(max(0, val * 1024))
         elif size_str.endswith('m') or size_str.endswith('mb'):
-            val = int(size_str[:-1])
-            return max(0, val * 1024 * 1024)
+            val = float(size_str[:-1].strip())
+            return int(max(0, val * 1024 * 1024))
         else:
-            val = int(size_str)
-            return max(0, val)
+            val = float(size_str)
+            return int(max(0, val))
     except (ValueError, TypeError):
         return 0
 

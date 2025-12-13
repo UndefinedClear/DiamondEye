@@ -3,11 +3,16 @@
 DiamondEye v6.7 — Professional HTTP Load Tester
 """
 import asyncio
+try:
+    import uvloop
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
+except ImportError:
+    pass  # uvloop недоступен (например, на Windows)
+
 import time
 import signal
 import sys
 from urllib.parse import urlparse
-from datetime import datetime
 import json
 
 try:
@@ -26,9 +31,7 @@ def load_useragents(filepath: str) -> list:
         with open(filepath, 'r', encoding='utf-8') as f:
             return [line.strip() for line in f if line.strip()]
     except Exception as e:
-        if 'args' in globals():
-            if args.debug:
-                print(f"{Fore.RED}[DEBUG] Не удалось загрузить useragents: {e}{Style.RESET_ALL}")
+        print(f"{Fore.RED}[DEBUG] Не удалось загрузить useragents: {e}{Style.RESET_ALL}")
         return []
 
 
@@ -44,6 +47,7 @@ def parse_methods(raw: str) -> list:
 async def main():
     args = parse_args()
 
+    use_http2 = args.http2 and not args.extreme
     if args.http2 and args.extreme:
         print(f"{Fore.YELLOW}⚠️  --http2 отключён: несовместим с --extreme{Style.RESET_ALL}")
 
@@ -74,7 +78,7 @@ async def main():
         no_ssl_check=args.no_ssl_check,
         debug=args.debug,
         proxy=args.proxy,
-        use_http2=args.use_http2,
+        use_http2=use_http2,
         slow_rate=args.slow,
         extreme=args.extreme,
         data_size=args.data_size,
@@ -85,15 +89,14 @@ async def main():
         args=args
     )
 
-    monitor_task = None
-    rps_task = None
-
     def signal_handler():
         if not attack._shutdown_event.is_set():
             print(f"\n{Fore.RED}🛑 Остановка...{Style.RESET_ALL}")
             attack._shutdown_event.set()
-            if monitor_task: monitor_task.cancel()
-            if rps_task: rps_task.cancel()
+            if attack._monitor_task:
+                attack._monitor_task.cancel()
+            if attack._rps_task:
+                attack._rps_task.cancel()
 
     try:
         loop = asyncio.get_running_loop()
@@ -104,8 +107,6 @@ async def main():
 
     start_time = time.time()
     try:
-        monitor_task = asyncio.create_task(attack.monitor())
-        rps_task = asyncio.create_task(attack.collect_rps_stats())
         await attack.start()
     except asyncio.CancelledError:
         pass

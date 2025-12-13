@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument('--data-size', type=validate_data_size, default=0, help='Body size: 64k, 1m')
     parser.add_argument('--flood', action='store_true', help='Minimal delay → max RPS')
     parser.add_argument('--path-fuzz', action='store_true', help='Random deep paths')
-    parser.add_argument('--header-flood', action='store_true', help='Up to 20 junk headers')
+    parser.add_argument('--header-flood', action='store_true', help='Up to 20 junk headers')  # ✅ Добавлено!
     parser.add_argument('--method-fuzz', action='store_true', help='Use PROPFIND, REPORT, LOCK')
 
     return parser.parse_args()
