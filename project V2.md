@@ -1,4 +1,4 @@
-goldeneye async load tool
+Diamondeye async load tool
 =========================
 
 описание
@@ -527,4 +527,4 @@ goldeneye async load tool
     
     Создано и подготовлено
     
-    teron and neo
+    larion and neo

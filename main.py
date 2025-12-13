@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DiamondEye v6.7 — Professional HTTP Load Tester
+DiamondEye v6.9 — Professional HTTP Load Tester
 """
 import asyncio
 try:
@@ -146,7 +146,7 @@ def generate_report(attack, start_time, args):
     rps = int(total / (duration or 1))
 
     return f"""╔════════════════════════════════════════════════╗
-║           DIAMONDEYE v6.7 — ОТЧЁТ              ║
+║           DIAMONDEYE v6.9 — ОТЧЁТ              ║
 ╚════════════════════════════════════════════════╝
 
 🎯 Цель: {args.url}
@@ -159,7 +159,7 @@ def generate_report(attack, start_time, args):
 ⚠️  Ошибок: {failed}
 
 ════════════════════════════════════════════════
-DiamondEye | by larion and Neo | v6.7
+DiamondEye | by larion and Neo | v6.9
 """
 
 
@@ -169,7 +169,7 @@ def save_json_report(attack, start_time, args, filepath):
     success_rate = ((attack.sent - attack.failed) / attack.sent * 100) if attack.sent > 0 else 0
 
     report = {
-        "tool": "DiamondEye", "version": "6.7",
+        "tool": "DiamondEye", "version": "6.9",
         "target": args.url, "duration_sec": int(duration),
         "config": {k: v for k, v in vars(args).items() if k not in ['func']},
         "metrics": {"sent": attack.sent, "failed": attack.failed, "rps": rps, "success_rate": success_rate}
