@@ -154,7 +154,7 @@ python main.py https://test.local \
 
 • --http2 и --extreme — НЕСОВМЕСТИМЫ
 • --proxy не работает с --slow (Slowloris идет в обход прокси)
-• --data-size применяется только к POST, PUT, PATCH, PROPFIND и др.
+• --data-size применяется только к POST, PUT, PATCH, PROPFIND и др.2
 • Избегайте -w 10000 -s 10000 — это может убить систему
 • Используйте --flood осторожно — может вызвать перегрев CPU
 
