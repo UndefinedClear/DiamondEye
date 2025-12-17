@@ -10,8 +10,16 @@ def validate_data_size(value):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="DiamondEye v6.7 — HTTP Load Tester")
+    parser = argparse.ArgumentParser(description="DiamondEye v9.0 — BountyHunter Mode")
     parser.add_argument('url', help='Target URL (e.g. http://127.0.0.1)')
+    
+    # 🔍 Сканирование
+    parser.add_argument('--scan', action='store_true', help='Enable path scanning mode')
+    parser.add_argument('--wordlist', help='Custom wordlist file')
+    parser.add_argument('--threads', type=int, default=20, help='Scan threads (default: 20)')
+    parser.add_argument('--output', default="found.txt", help='Save found paths (default: found.txt)')
+
+    # 🔧 Атака
     parser.add_argument('-w', '--workers', type=int, default=10, help='Number of worker tasks')
     parser.add_argument('-s', '--sockets', type=int, default=100, help='Number of connections per worker')
     parser.add_argument('-m', '--methods', help='GET,POST,PUT,PATCH,ALL')
@@ -30,7 +38,7 @@ def parse_args():
     parser.add_argument('--data-size', type=validate_data_size, default=0, help='Body size: 64k, 1m')
     parser.add_argument('--flood', action='store_true', help='Minimal delay → max RPS')
     parser.add_argument('--path-fuzz', action='store_true', help='Random deep paths')
-    parser.add_argument('--header-flood', action='store_true', help='Up to 20 junk headers')  # ✅ Добавлено!
+    parser.add_argument('--header-flood', action='store_true', help='Up to 20 junk headers')
     parser.add_argument('--method-fuzz', action='store_true', help='Use PROPFIND, REPORT, LOCK')
 
     return parser.parse_args()

