@@ -1,4 +1,4 @@
-# DiamondEye v6.9 — Professional HTTP Load Tester
+# DiamondEye v7.1 — Professional HTTP Load Tester
 
 ⚠️ ВАЖНО: Используйте ТОЛЬКО для тестирования систем, 
 которые вам принадлежат или на которые у вас есть письменное разрешение.  
