@@ -46,6 +46,13 @@ Diamondeye — это инструмент для:
 *   `-l, --log <файл>`: Сохраняет текстовый отчёт о тесте.
 *   `--json <файл>`: Сохраняет JSON-отчёт с детальной статистикой.
 *   `--plot <файл>`: Сохраняет график RPS (требуется matplotlib).
+*   `--http3`: Включает HTTP/3 (QUIC) — требует `pip install httpx[http3]`
+*   `--websocket`: Атака через WebSocket-флуд
+*   `--auth <token>`: Добавляет `Authorization: Bearer <token>`
+*   `--h2reset`: Активирует HTTP/2 Rapid Reset (разрыв соединения)
+*   `--graphql-bomb`: Отправляет 1000 GraphQL-запросов в батче
+*   `--adaptive`: Увеличивает нагрузку до отказа сервера
+*   `--dns-rebind`: Включает DNS Rebinding (для SSRF-тестов)
 
 **Примеры использования:**
 
@@ -53,7 +60,7 @@ Diamondeye — это инструмент для:
 2.  Экстремальная нагрузка на TCP-стек: `python main.py https://target.com --extreme --flood --junk --data-size 64k -w 200 -s 2000`
 3.  Полный фаззинг (макс. воздействие): `python main.py https://127.0.0.1:8000 --http2 --junk --header-flood --random-host --path-fuzz --method-fuzz --data-size 1m --flood -w 100 -s 1000`
 4.  Тест с отчётом: `python main.py https://test.local --http2 -w 100 -s 500 -l report.log --json report.json --plot rps.png`
-5.  Полное сканированиепутей `python main.py https://target.com --scan --threads 10000 --output scan_full.txt`
+5.  Полное сканированиепутей `python main.py https://target.com --scan --threads 10 --output scan_full.txt`
 6. full fazing `python main.py https://target.com --http2 --flood --extreme --junk --header-flood --random-host --path-fuzz --method-fuzz --data-size 1m -w 500 -s 2000 --slow 0.1 -l attack_full.log --json report.json --plot rps.png`
 7. Атака на уязвимый путь `python main.py https://target.com/admin --flood --extreme --method-fuzz --data-size 64k -w 200 -s 1000 --junk -l admin_attack.log`
 `

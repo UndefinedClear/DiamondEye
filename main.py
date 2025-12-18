@@ -52,7 +52,6 @@ def parse_methods(raw: str) -> list:
 async def main():
     args = parse_args()
 
-    # ✅ Режим сканирования
     if args.scan:
         print(f"{Fore.CYAN}🔍 Режим: Сканирование путей{Style.RESET_ALL}")
         try:
@@ -64,22 +63,18 @@ async def main():
             print(f"{Fore.RED}[ERROR] {e}{Style.RESET_ALL}")
         return
 
-    # ✅ Проверка: --http2 и --extreme
     if args.http2 and args.extreme:
         print(f"{Fore.YELLOW}⚠️  --http2 несовместим с --extreme — отключено{Style.RESET_ALL}")
         args.http2 = False
 
-    # ✅ Проверка: --flood + --slow
     if args.flood and args.slow > 0:
         print(f"{Fore.YELLOW}⚠️  --flood отключает --slow — режимы конфликтуют{Style.RESET_ALL}")
         args.slow = 0.0
 
-    # ✅ Проверка: --header-flood требует --junk
     if args.header_flood and not args.junk:
         print(f"{Fore.YELLOW}⚠️  --header-flood требует --junk — включен автоматически{Style.RESET_ALL}")
         args.junk = True
 
-    # ✅ Валидация URL
     if not args.url:
         print(f"{Fore.RED}❌ URL is required{Style.RESET_ALL}")
         sys.exit(1)
@@ -92,10 +87,7 @@ async def main():
         print(f"{Fore.RED}❌ URL parse error{Style.RESET_ALL}")
         sys.exit(1)
 
-    # ✅ Загрузка User-Agent
     useragents = load_useragents(args.useragents) if args.useragents else []
-
-    # ✅ Добавляем CTF User-Agent только для localhost
     netloc = parsed.netloc.lower()
     if netloc.startswith(('127.', 'localhost', '0.0.0.0')):
         useragents.append("CTF-Scanner/9.0")
@@ -103,14 +95,12 @@ async def main():
 
     methods = parse_methods(args.methods)
 
-    # ✅ Ограничение workers на localhost
     if netloc.startswith(('127.', 'localhost', '0.0.0.0')):
         max_workers = max(1, psutil.cpu_count() * 4)
         if args.workers > max_workers:
             print(f"{Fore.YELLOW}🔧 Localhost: workers limited to {max_workers}{Style.RESET_ALL}")
             args.workers = max_workers
 
-    # ✅ Создание атаки
     attack = DiamondEyeAttack(
         url=args.url,
         workers=args.workers,
@@ -121,6 +111,13 @@ async def main():
         debug=args.debug,
         proxy=args.proxy,
         use_http2=args.http2,
+        use_http3=args.http3,
+        websocket=args.websocket,
+        auth=args.auth,
+        h2reset=args.h2reset,
+        graphql_bomb=args.graphql_bomb,
+        adaptive=args.adaptive,
+        dns_rebind=args.dns_rebind,
         slow_rate=args.slow,
         extreme=args.extreme,
         data_size=args.data_size,
@@ -141,13 +138,12 @@ async def main():
         if attack._rps_task:
             attack._rps_task.cancel()
 
-    # Настройка обработчиков сигналов
     try:
         loop = asyncio.get_running_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, signal_handler)
     except NotImplementedError:
-        pass  # Windows
+        pass
 
     start_time = time.time()
     try:
@@ -163,7 +159,6 @@ async def main():
 
     duration = time.time() - start_time
 
-    # ✅ Сохранение отчётов
     if args.log:
         try:
             report = generate_report(attack, duration, args)
@@ -184,7 +179,6 @@ async def main():
         save_plot(attack, args.plot)
 
 
-# === ОТЧЁТЫ ===
 def generate_report(attack, duration, args):
     total = attack.sent
     failed = attack.failed
@@ -241,7 +235,6 @@ def save_plot(attack, filepath):
         times = [p['time'] for p in attack.rps_history]
         rps = [p['rps'] for p in attack.rps_history]
 
-        # Фильтр выбросов
         avg = sum(rps) / len(rps) if rps else 1
         rps = [x if x < avg * 3 else avg for x in rps]
 
@@ -259,7 +252,6 @@ def save_plot(attack, filepath):
         print(f"{Fore.RED}❌ Plot error: {e}{Style.RESET_ALL}")
 
 
-# ✅ ЕДИНСТВЕННЫЙ ТОЧКА ВХОДА
 if __name__ == "__main__":
     try:
         asyncio.run(main())

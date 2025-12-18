@@ -1,3 +1,4 @@
+# args.py
 import argparse
 from utils import parse_data_size
 
@@ -30,6 +31,17 @@ def parse_args():
     parser.add_argument('-l', '--log', help='Save text report')
     parser.add_argument('--json', help='Save JSON report')
     parser.add_argument('--plot', help='Save RPS plot (requires matplotlib)')
+
+    # 🆕 Новые флаги
+    parser.add_argument('--http3', action='store_true', help='Use HTTP/3 (QUIC)')
+    parser.add_argument('--websocket', action='store_true', help='WebSocket flood mode')
+    parser.add_argument('--auth', help='Authorization token: Bearer <token>')
+    parser.add_argument('--h2reset', action='store_true', help='Enable HTTP/2 Rapid Reset')
+    parser.add_argument('--graphql-bomb', action='store_true', help='Send GraphQL batch bomb')
+    parser.add_argument('--adaptive', action='store_true', help='Adaptive RPS: increase until failure')
+    parser.add_argument('--dns-rebind', action='store_true', help='Enable DNS Rebinding for SSRF tests')
+
+    # Остальные
     parser.add_argument('--http2', action='store_true', help='Use HTTP/2 (not with --extreme)')
     parser.add_argument('--junk', action='store_true', help='Add random X-* headers')
     parser.add_argument('--random-host', action='store_true', help='Random subdomain in Host header')

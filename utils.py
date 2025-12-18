@@ -1,3 +1,4 @@
+# utils.py
 import random
 import string
 
@@ -26,7 +27,8 @@ def parse_data_size(size_str: str) -> int:
 
 
 def generate_headers(host: str, useragents: list, referers: list, use_junk: bool = False,
-                     use_random_host: bool = False, header_flood: bool = False) -> dict:
+                     use_random_host: bool = False, header_flood: bool = False,
+                     auth_token: str = None) -> dict:
     ua = random.choice(useragents) if useragents else "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
     referer = random.choice(referers)
 
@@ -43,6 +45,9 @@ def generate_headers(host: str, useragents: list, referers: list, use_junk: bool
         headers['Host'] = f"{random_string(8)}.{host}"
     else:
         headers['Host'] = host
+
+    if auth_token:
+        headers['Authorization'] = f"Bearer {auth_token}"
 
     if use_junk:
         count = 20 if header_flood else random.randint(3, 8)
