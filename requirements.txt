@@ -3,5 +3,4 @@ aiohttp>=3.9.0
 websockets>=12.0
 colorama>=0.4.6
 matplotlib>=3.8.0
-# uvloop только для Linux/macOS, не для Windows
 uvloop>=0.19.0; sys_platform != "win32"

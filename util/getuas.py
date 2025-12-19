@@ -8,6 +8,7 @@ import sys
 import urllib.request
 import urllib.error
 from bs4 import BeautifulSoup
+import os
 
 
 def fetch_user_agents(url: str) -> list:
@@ -66,11 +67,24 @@ def main():
         print("❌ No User-Agents found. Check URL.")
         sys.exit(1)
 
-    # Вывод в stdout
-    for ua in uas:
-        print(ua)
+    # 📁 Путь для сохранения
+    output_path = "res/lists/useragents/useragents.txt"
 
-    print(f"\n✅ Found {len(uas)} User-Agent strings", file=sys.stderr)
+    # 🔧 Создаём папки, если их нет
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    # 💾 Сохраняем User-Agent'ы в файл
+    try:
+        with open(output_path, 'w', encoding='utf-8') as f:
+            for ua in uas:
+                f.write(ua + '\n')
+        print(f"✅ Saved {len(uas)} User-Agent strings to {output_path}", file=sys.stderr)
+    except Exception as e:
+        print(f"❌ Failed to save file: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # ⚠️ Вывод в stderr о результате (не в stdout, чтобы не мешать другим обработкам)
+    print(f"📋 Collected {len(uas)} User-Agent strings", file=sys.stderr)
 
 
 if __name__ == "__main__":

