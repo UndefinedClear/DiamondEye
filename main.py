@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-💎 DiamondEye BountyHunter v9.0 — Ethical Hacking & Local Testing
+💎 DiamondEye BountyHunter v9.8 — Ethical Hacking & Local Testing
 • Scan mode: find /admin, /.git, /backup
 • Attack mode: flood, slow, extreme
 • Safe for bug bounty & white-hat
@@ -20,6 +20,7 @@ import websockets
 import psutil
 from urllib.parse import urlparse
 import json
+import os
 
 try:
     import matplotlib.pyplot as plt
@@ -31,7 +32,6 @@ except ImportError:
 from args import parse_args
 from attack import DiamondEyeAttack  
 from colorama import Fore, Style
-
 
 
 def load_useragents(filepath: str) -> list:
@@ -58,7 +58,7 @@ async def main():
     if args.scan:
         print(f"{Fore.CYAN}🔍 Режим: Сканирование путей{Style.RESET_ALL}")
         try:
-            from scaner import start_scan
+            from scanner import start_scan
             await start_scan(args.url, args.wordlist, args.threads, args.output)
         except KeyboardInterrupt:
             print(f"\n{Fore.RED}🛑 Сканирование прервано{Style.RESET_ALL}")
@@ -69,6 +69,10 @@ async def main():
     if args.http2 and args.extreme:
         print(f"{Fore.YELLOW}⚠️  --http2 несовместим с --extreme — отключено{Style.RESET_ALL}")
         args.http2 = False
+
+    if args.http3 and args.extreme:
+        print(f"{Fore.YELLOW}⚠️  --http3 несовместим с --extreme — отключено{Style.RESET_ALL}")
+        args.http3 = False
 
     if args.flood and args.slow > 0:
         print(f"{Fore.YELLOW}⚠️  --flood отключает --slow — режимы конфликтуют{Style.RESET_ALL}")
@@ -93,7 +97,7 @@ async def main():
     useragents = load_useragents(args.useragents) if args.useragents else []
     netloc = parsed.netloc.lower()
     if netloc.startswith(('127.', 'localhost', '0.0.0.0')):
-        useragents.append("CTF-Scanner/9.0")
+        useragents.append("CTF-Scanner/9.8")
         useragents.append("Mozilla/5.0 (X11; Linux x86_64) BountyHunter-Mode")
 
     methods = parse_methods(args.methods)
@@ -120,7 +124,6 @@ async def main():
         h2reset=args.h2reset,
         graphql_bomb=args.graphql_bomb,
         adaptive=args.adaptive,
-        dns_rebind=args.dns_rebind,
         slow_rate=args.slow,
         extreme=args.extreme,
         data_size=args.data_size,
@@ -128,7 +131,8 @@ async def main():
         path_fuzz=args.path_fuzz,
         header_flood=args.header_flood,
         method_fuzz=args.method_fuzz,
-        args=args
+        junk=args.junk,
+        random_host=args.random_host
     )
 
     def signal_handler():
@@ -150,7 +154,7 @@ async def main():
 
     start_time = time.time()
     try:
-        print(f"{Fore.GREEN}🚀 DiamondEye v9.0 — Attack started{Style.RESET_ALL}")
+        print(f"{Fore.GREEN}🚀 DiamondEye v9.8 — Attack started{Style.RESET_ALL}")
         await attack.start()
     except Exception as e:
         if args.debug:
@@ -164,6 +168,7 @@ async def main():
 
     if args.log:
         try:
+            os.makedirs(os.path.dirname(args.log), exist_ok=True)
             report = generate_report(attack, duration, args)
             with open(args.log, 'w', encoding='utf-8') as f:
                 f.write(report)
@@ -173,6 +178,7 @@ async def main():
 
     if args.json:
         try:
+            os.makedirs(os.path.dirname(args.json), exist_ok=True)
             save_json_report(attack, duration, args, args.json)
             print(f"{Fore.CYAN}📦 JSON saved: {args.json}{Style.RESET_ALL}")
         except Exception as e:
@@ -189,7 +195,7 @@ def generate_report(attack, duration, args):
     rps = int(total / (duration or 1))
 
     return f"""╔════════════════════════════════════════════════╗
-║        DIAMONDEYE v9.0 — BOUNTY REPORT         ║
+║           DIAMONDEYE v9.8 — REPORT             ║
 ╚════════════════════════════════════════════════╝
 
 🎯 Цель: {args.url}
@@ -202,7 +208,7 @@ def generate_report(attack, duration, args):
 ⚠️  Ошибок: {failed}
 
 ════════════════════════════════════════════════
-DiamondEye | Bug Bounty & White-Hat Mode | v9.0
+DiamondEye v9.8 | by larion
 """
 
 
@@ -212,7 +218,7 @@ def save_json_report(attack, duration, args, filepath):
 
     report = {
         "tool": "DiamondEye",
-        "version": "9.0",
+        "version": "9.8",
         "target": args.url,
         "duration_sec": int(duration),
         "config": {k: v for k, v in vars(args).items() if k not in ['func']},
@@ -228,38 +234,39 @@ def save_json_report(attack, duration, args, filepath):
         json.dump(report, f, indent=2, ensure_ascii=False)
 
 
-def save_plot(attack, filepath):
-    if not MATPLOTLIB_AVAILABLE:
-        print(f"{Fore.YELLOW}⚠️  matplotlib not installed{Style.RESET_ALL}")
-        return
-    if not attack.rps_history or len(attack.rps_history) < 2:
-        return
-    try:
-        times = [p['time'] for p in attack.rps_history]
-        rps = [p['rps'] for p in attack.rps_history]
+    def save_plot(attack, filepath):
+        if not MATPLOTLIB_AVAILABLE:
+            print(f"{Fore.YELLOW}⚠️  matplotlib not installed{Style.RESET_ALL}")
+            return
+        if not attack.rps_history or len(attack.rps_history) < 2:
+            return
+        try:
+            times = [p['time'] for p in attack.rps_history]
+            rps = [p['rps'] for p in attack.rps_history]
 
-        avg = sum(rps) / len(rps) if rps else 1
-        rps = [x if x < avg * 3 else avg for x in rps]
+            avg = sum(rps) / len(rps) if rps else 1
+            rps = [x if x < avg * 3 else avg for x in rps]  # фильтр выбросов
 
-        plt.figure(figsize=(10, 5))
-        plt.plot(times, rps, color='red', linewidth=1.2)
-        plt.xlabel('Time (s)')
-        plt.ylabel('RPS')
-        plt.title('RPS over Time — DiamondEye v9.0')
-        plt.grid(True, alpha=0.3)
-        plt.tight_layout()
-        plt.savefig(filepath, dpi=120)
-        plt.close()
-        print(f"{Fore.CYAN}📊 Plot saved: {filepath}{Style.RESET_ALL}")
-    except Exception as e:
-        print(f"{Fore.RED}❌ Plot error: {e}{Style.RESET_ALL}")
+            plt.figure(figsize=(10, 5))
+            plt.plot(times, rps, color='red', linewidth=1.2)
+            plt.xlabel('Time (s)')
+            plt.ylabel('RPS')
+            plt.title('RPS over Time — DiamondEye v9.8')
+            plt.grid(True, alpha=0.3)
+            plt.tight_layout()
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            plt.savefig(filepath, dpi=120)
+            plt.close()
+            print(f"{Fore.CYAN}📊 Plot saved: {filepath}{Style.RESET_ALL}")
+        except Exception as e:
+            print(f"{Fore.RED}❌ Plot error: {e}{Style.RESET_ALL}")
 
 
-if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except KeyboardInterrupt:
-        print("\n🛑 Interrupted.")
-    except Exception as e:
-        print(f"{Fore.RED}❌ Error: {e}{Style.RESET_ALL}")
-        sys.exit(1)
+    if __name__ == "__main__":
+        try:
+            asyncio.run(main())
+        except KeyboardInterrupt:
+            print("\n🛑 Interrupted.")
+        except Exception as e:
+            print(f"{Fore.RED}❌ Error: {e}{Style.RESET_ALL}")
+            sys.exit(1)

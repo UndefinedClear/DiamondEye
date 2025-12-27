@@ -11,7 +11,7 @@ def validate_data_size(value):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="DiamondEye v9.0 — BountyHunter Mode")
+    parser = argparse.ArgumentParser(description="DiamondEye v9.8 — BountyHunter Mode")
     parser.add_argument('url', help='Target URL (e.g. http://127.0.0.1)')
     
     # 🔍 Сканирование
@@ -37,7 +37,6 @@ def parse_args():
     parser.add_argument('--websocket', action='store_true', help='WebSocket flood mode')
     parser.add_argument('--auth', help='Authorization token: Bearer <token>')
     parser.add_argument('--h2reset', action='store_true', help='Enable HTTP/2 Rapid Reset')
-    parser.add_argument('--dns-rebind', action='store_true', help='Enable DNS Rebinding for SSRF tests')
     parser.add_argument('--http2', action='store_true', help='Use HTTP/2 (not with --extreme)')
     parser.add_argument('--junk', action='store_true', help='Add random X-* headers')
     parser.add_argument('--random-host', action='store_true', help='Random subdomain in Host header')

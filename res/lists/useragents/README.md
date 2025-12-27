@@ -17,29 +17,28 @@
 | `attack.py` | Ядро нагрузки: воркеры, медленные запросы (Slowloris), отправка HTTP-запросов. |
 | `args.py` | Парсинг аргументов командной строки и их валидация. |
 | `utils.py` | Вспомогательные функции: генерация заголовков, случайных строк, парсинг размеров. |
+| `scaner.py` | Проверка на уязвимые пути для атаки и взломов сайтов |
 | `requirements.txt` | Список Python-зависимостей. |
 | `README.md` | Основное описание, примеры использования, этические предупреждения. |
 | `project.md` | Подробное техническое описание логики работы (для разработчиков). |
 | `SYSTEM.md` | Рекомендации по настройке ОС для максимальной производительности. |
-| `util/getuas.py` | Утилита для парсинга User-Agent'ов с сайта `useragentstring.com`. |
+| | |
+| `wordlist/` | **актуальные пути собранные с открытыъ источников** |
+| &nbsp;&nbsp;├── `combined.txt` | Все актуальные пути собранные с открытых источников |
+| | |
+| `util/` | **Сборка утилит для работы** |
+| &nbsp;&nbsp;├── `getuas.py` | Утилита для парсинга User-Agent'ов с сайта `useragentstring.com`. |
+| &nbsp;&nbsp;├── `getwordlist.py` | Собирает актуальные списки путей с открытых источников |
+| | |
+| `res/lists/` | **Коллекция User-Agent строк json** |
+| &nbsp;&nbsp;└── `useragents.json` | Структурированная версия для программной работы. |
 | | |
 | `res/lists/useragents/` | **Коллекция User-Agent строк** |
 | &nbsp;&nbsp;├── `categories/` | Разбито по типам: боты, мобильные, устаревшие и др. |
 | &nbsp;&nbsp;├── `raw/` | Оригинальные файлы из внешних источников. |
-| &nbsp;&nbsp;├── `useragents.txt` | Все уникальные UA (единый плоский список). |
-| &nbsp;&nbsp;└── `useragents.json` | Структурированная версия для программной работы. |
+| &nbsp;&nbsp;└── `useragents.txt` | Все уникальные UA (единый плоский список). |
 
 
-## Категории
-
-| Файл               | Описание |
-|--------------------|--------|
-| `validators.txt`   | HTML/CSS валидаторы (W3C и др.) |
-| `mobile-modern.txt`| Современные Android/iOS |
-| `mobile-legacy.txt`| Opera Mini, BlackBerry, Symbian |
-| `obsolete.txt`     | Palm, Windows CE, BREW |
-| `bots.txt`         | Поисковые боты |
-| `headless.txt`     | Headless Chrome, Puppeteer |
 
 ## Источники
 
@@ -48,8 +47,4 @@
 - W3C Validator logs
 - Common bot lists
 
-## Использование
-
-```python
-with open('res/lists/useragents/categories/validators.txt') as f:
-    validators = {line.strip() for line in f if line.strip()}
+### Подготовленно larion
