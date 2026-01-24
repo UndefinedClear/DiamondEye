@@ -89,7 +89,7 @@ class DiamondEyeAttack:
         base_kwargs = {
             "verify": not self.no_ssl_check,
             "timeout": httpx.Timeout(10.0),
-            "limits": limits,
+            "lim its": limits,
         }
         if self.use_http2:
             base_kwargs["http2"] = True

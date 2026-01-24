@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""
-💎 DiamondEye BountyHunter v9.8 — Ethical Hacking & Local Testing
-• Scan mode: find /admin, /.git, /backup
-• Attack mode: flood, slow, extreme
-• Safe for bug bounty & white-hat
-"""
 import asyncio
 try:
     import uvloop
@@ -27,7 +21,6 @@ try:
     MATPLOTLIB_AVAILABLE = True
 except ImportError:
     MATPLOTLIB_AVAILABLE = False
-
 
 from args import parse_args
 from attack import DiamondEyeAttack  
@@ -234,39 +227,40 @@ def save_json_report(attack, duration, args, filepath):
         json.dump(report, f, indent=2, ensure_ascii=False)
 
 
-    def save_plot(attack, filepath):
-        if not MATPLOTLIB_AVAILABLE:
-            print(f"{Fore.YELLOW}⚠️  matplotlib not installed{Style.RESET_ALL}")
-            return
-        if not attack.rps_history or len(attack.rps_history) < 2:
-            return
-        try:
-            times = [p['time'] for p in attack.rps_history]
-            rps = [p['rps'] for p in attack.rps_history]
+def save_plot(attack, filepath):
+    if not MATPLOTLIB_AVAILABLE:
+        print(f"{Fore.YELLOW}⚠️  matplotlib not installed{Style.RESET_ALL}")
+        return
+    if not attack.rps_history or len(attack.rps_history) < 2:
+        return
+    try:
+        times = [p['time'] for p in attack.rps_history]
+        rps = [p['rps'] for p in attack.rps_history]
 
-            avg = sum(rps) / len(rps) if rps else 1
-            rps = [x if x < avg * 3 else avg for x in rps]  # фильтр выбросов
+        avg = sum(rps) / len(rps) if rps else 1
+        rps = [x if x < avg * 3 else avg for x in rps]  
 
-            plt.figure(figsize=(10, 5))
-            plt.plot(times, rps, color='red', linewidth=1.2)
-            plt.xlabel('Time (s)')
-            plt.ylabel('RPS')
-            plt.title('RPS over Time — DiamondEye v9.8')
-            plt.grid(True, alpha=0.3)
-            plt.tight_layout()
-            os.makedirs(os.path.dirname(filepath), exist_ok=True)
-            plt.savefig(filepath, dpi=120)
-            plt.close()
-            print(f"{Fore.CYAN}📊 Plot saved: {filepath}{Style.RESET_ALL}")
-        except Exception as e:
-            print(f"{Fore.RED}❌ Plot error: {e}{Style.RESET_ALL}")
+        plt.figure(figsize=(10, 5))
+        plt.plot(times, rps, color='red', linewidth=1.2)
+        plt.xlabel('Time (s)')
+        plt.ylabel('RPS')
+        plt.title('RPS over Time — DiamondEye v9.8')
+        plt.grid(True, alpha=0.3)
+        plt.tight_layout()
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        plt.savefig(filepath, dpi=120)
+        plt.close()
+        print(f"{Fore.CYAN}📊 Plot saved: {filepath}{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"{Fore.RED}❌ Plot error: {e}{Style.RESET_ALL}")
 
 
-    if __name__ == "__main__":
-        try:
-            asyncio.run(main())
-        except KeyboardInterrupt:
-            print("\n🛑 Interrupted.")
-        except Exception as e:
-            print(f"{Fore.RED}❌ Error: {e}{Style.RESET_ALL}")
-            sys.exit(1)
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n🛑 Interrupted.")
+    except Exception as e:
+        print(f"{Fore.RED}❌ Error: {e}{Style.RESET_ALL}")
+        sys.exit(1)
+ 
