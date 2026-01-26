@@ -406,34 +406,7 @@ python main.py https://target.com \
 | **Диск** | 100 МБ | 1 ГБ | 10+ ГБ SSD |
 | **Сеть** | 100 Мбит | 1 Гбит | 10+ Гбит |
 
-### 📊 Оптимальные настройки ОС
-
-**Linux (Ubuntu/Debian):**
-```bash
-# Увеличение лимитов
-sudo sysctl -w net.ipv4.ip_local_port_range="1024 65535"
-sudo sysctl -w net.ipv4.tcp_tw_reuse=1
-sudo sysctl -w net.core.somaxconn=65535
-
-# Лимиты файловых дескрипторов
-echo "* soft nofile 65536" | sudo tee -a /etc/security/limits.conf
-echo "* hard nofile 65536" | sudo tee -a /etc/security/limits.conf
-```
-
-**macOS:**
-```bash
-# Временные настройки
-sudo sysctl -w kern.maxfiles=131072
-sudo sysctl -w kern.maxfilesperproc=65536
-ulimit -n 65536
-```
-
-**Windows:**
-```powershell
-# Увеличение портов
-netsh int ipv4 set dynamicport tcp start=1024 num=64511
-reg add "HKLM\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters" /v "MaxUserPort" /t REG_DWORD /d 65534 /f
-```
+### 📊 Оптимальные настройки ОС смотреть в SYSTEM.md
 
 ### 🔧 Требования к Python
 - **Python 3.8+** (рекомендуется 3.10+)
