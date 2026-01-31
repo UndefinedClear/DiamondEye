@@ -44,7 +44,6 @@ def parse_methods(raw: str) -> list:
         return ALL_METHODS
     return [m.strip().upper() for m in raw.split(',') if m.strip().upper() in ALL_METHODS]
 
-
 async def main():
     args = parse_args()
 
@@ -171,11 +170,14 @@ async def main():
 
     if args.json:
         try:
-            os.makedirs(os.path.dirname(args.json), exist_ok=True)
+            dirname = os.path.dirname(args.json)
+            if dirname:  
+                os.makedirs(dirname, exist_ok=True)
             save_json_report(attack, duration, args, args.json)
             print(f"{Fore.CYAN}📦 JSON saved: {args.json}{Style.RESET_ALL}")
         except Exception as e:
             print(f"{Fore.RED}❌ JSON error: {e}{Style.RESET_ALL}")
+
 
     if args.plot:
         save_plot(attack, args.plot)
@@ -225,7 +227,6 @@ def save_json_report(attack, duration, args, filepath):
     }
     with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
-
 
 def save_plot(attack, filepath):
     if not MATPLOTLIB_AVAILABLE:

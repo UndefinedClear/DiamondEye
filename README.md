@@ -56,14 +56,8 @@
 ### 📈 **Аналитика и мониторинг**
 - **Real-time статистика** — RPS, задержки, ошибки
 - **Графики производительности** — визуализация нагрузки
-- **Детальные отчеты** — текстовые, JSON, HTML
+- **Детальные отчеты** — текстовые, JSON
 - **Экспорт данных** — интеграция с мониторинг системами
-
-### 🔄 **Гибкая конфигурация**
-- **Модульная архитектура** — плагины и расширения
-- **Настраиваемые профили** — предустановленные конфигурации
-- **Распределенный режим** — координация между несколькими нодами
-- **API управление** — удаленный контроль через REST API
 
 ---
 
@@ -235,8 +229,6 @@ python main.py <URL> --monitor --duration 300
 | `-l`, `--log FILE` | Текстовый отчет | `.log`, `.txt` |
 | `--json FILE` | JSON отчет | `.json` |
 | `--plot FILE` | График RPS | `.png`, `.jpg`, `.svg` |
-| `--csv FILE` | Экспорт в CSV | `.csv` |
-
 ---
 
 ## 📊 ОТЧЕТНОСТЬ И АНАЛИТИКА
@@ -264,23 +256,48 @@ python main.py <URL> --monitor --duration 300
 {
   "tool": "DiamondEye",
   "version": "9.8",
-  "target": "https://target.com",
-  "duration_sec": 60,
-  "configuration": {
-    "workers": 500,
-    "sockets": 2000,
-    "methods": ["GET", "POST"]
+  "target": "https://httpbin.org/get",
+  "duration_sec": 13,
+  "config": {
+    "url": "https://httpbin.org/get",
+    "scan": false,
+    "wordlist": null,
+    "threads": 20,
+    "output": "found.txt",
+    "workers": 10,
+    "sockets": 5,
+    "methods": null,
+    "useragents": null,
+    "no_ssl_check": false,
+    "debug": false,
+    "log": null,
+    "json": "report.json",
+    "plot": null,
+    "proxy": null,
+    "http3": false,
+    "websocket": false,
+    "auth": null,
+    "h2reset": false,
+    "http2": false,
+    "junk": false,
+    "random_host": false,
+    "slow": 0.0,
+    "extreme": false,
+    "data_size": 0,
+    "flood": false,
+    "path_fuzz": false,
+    "header_flood": false,
+    "graphql_bomb": false,
+    "adaptive": false,
+    "method_fuzz": false
   },
   "metrics": {
-    "total_requests": 1245678,
-    "successful_requests": 1229785,
-    "failed_requests": 15893,
-    "average_rps": 20761,
-    "success_rate": 98.7,
-    "latency_p50": 45,
-    "latency_p95": 120,
-    "latency_p99": 250
-  }
+    "sent": 236,
+    "failed": 0,
+    "rps": 18,
+    "success_rate": 100.0
+  },
+  "timestamp": 1769849618.603182
 }
 ```
 
@@ -306,7 +323,6 @@ python main.py https://api.example.com/v1/users \
   -m GET,POST \
   --data-size 1k \
   --json api_test.json \
-  --duration 300
 ```
 
 ### Пример 2: Проверка DDoS устойчивости
@@ -347,8 +363,7 @@ python main.py wss://chat.example.com/ws \
   --websocket \
   -w 50 \
   -s 100 \
-  --data-size 2k \
-  --duration 600 \
+  --data-size 400k \
   -l websocket_test.log
 ```
 
@@ -358,10 +373,8 @@ python main.py wss://chat.example.com/ws \
 python main.py https://app.example.com \
   --adaptive \
   --http2 \
-  -w 10 \
+  -w 70 \
   -s 100 \
-  --max-rps 10000 \
-  --duration 900 \
   --json adaptive_results.json
 ```
 
@@ -374,24 +387,6 @@ python main.py https://target.com \
   -s 200 \
   --debug \
   -l burp_test.log
-```
-
-### Пример 7: Распределенное тестирование
-```bash
-# Запуск на нескольких нодах
-# Нода 1:
-python main.py https://target.com \
-  --mode worker \
-  --coordinator redis://coordinator:6379 \
-  -w 250 \
-  -s 1000
-
-# Нода 2:
-python main.py https://target.com \
-  --mode worker \
-  --coordinator redis://coordinator:6379 \
-  -w 250 \
-  -s 1000
 ```
 
 ---
@@ -452,8 +447,8 @@ python main.py https://target.com \
 
 ### ❓ Какой максимальный RPS можно достичь?
 **Ответ:** Зависит от многих факторов:
-- На локальном сервере: 50,000+ RPS
-- Через интернет: 5,000-20,000 RPS
+- На локальном сервере: 25,000+ RPS
+- Через интернет: 5,000-10,000 RPS
 - На слабом оборудовании: 1,000-5,000 RPS
 
 **Рекомендации для максимального RPS:**
@@ -508,31 +503,12 @@ python main.py https://target.com \
 - Растет процент ошибок
 - Нестабильный график
 
-### ❓ Как настроить для CTF или обучения?
-**Безопасная конфигурация:**
-```bash
-# Создание учебного стенда
-python main.py http://localhost:8080 \
-  -w 10 \
-  -s 50 \
-  --scan \
-  --threads 5 \
-  --output ctf_findings.txt \
-  --json ctf_report.json
-
-# Ограничение нагрузки для обучения
-python main.py http://localhost:8080 \
-  --max-rps 100 \
-  --duration 60 \
-  --safe-mode
-```
-
 ---
 
 ## 📞 ПОДДЕРЖКА И КОНТАКТЫ
 
 ### 🐛 Сообщение об ошибках
-**GitHub Issues:** [github.com/your-username/diamondeye/issues](https://github.com/your-username/diamondeye/issues)
+- **Telegram**: [@pelikan6](https://t.me/pelikan6)
 
 **Шаблон для баг-репорта:**
 ```markdown
@@ -550,13 +526,6 @@ python main.py http://localhost:8080 \
 ## Логи и скриншоты
 
 ```
-
-### 💬 Сообщество
-!!!! NEO добавь сообщества
-
-### 📚 Документация
-- **Полная документация:** []()
-!!!! NEO добавь сюда твою доку 
 
 ---
 
@@ -587,10 +556,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-### Благодарности
+### Про проект
 - **Разработчик:** larion928 Teron
 - **Вдохновлено:** golden eye
 - **Особые благодарности:** UndefinedClear Hyprbro
+- **Особые благодарности+:** my chat 
 
 ---
 

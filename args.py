@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument('-l', '--log', help='Save text report')
     parser.add_argument('--json', help='Save JSON report')
     parser.add_argument('--plot', help='Save RPS plot (requires matplotlib)')
-
+    
     # Флаги атаки
     parser.add_argument('--proxy', help='HTTP/HTTPS proxy (e.g. http://127.0.0.1:8080)')
     parser.add_argument('--http3', action='store_true', help='Use HTTP/3 (QUIC)')
