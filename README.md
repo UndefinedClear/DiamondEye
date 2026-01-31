@@ -114,25 +114,6 @@ pip install httpx[http3]    # Для HTTP/3 (QUIC) поддержки
 pip install uvloop
 ```
 
-### Установка через Docker
-```bash
-# Сборка образа
-docker build -t diamondeye:latest .
-
-# Запуск контейнера
-docker run -it --rm \
-  --network host \
-  --ulimit nofile=65536:65536 \
-  diamondeye:latest \
-  python main.py https://target.com --workers 100
-```
-
-### Проверка установки
-```bash
-python main.py --help
-# Должен отобразиться список доступных команд и параметров
-```
-
 ---
 
 ## 🎯 ОСНОВНЫЕ РЕЖИМЫ РАБОТЫ
