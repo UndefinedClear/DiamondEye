@@ -6,6 +6,7 @@ import socket
 import random
 import struct
 import time
+import os
 from colorama import Fore, Style
 
 

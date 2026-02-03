@@ -68,7 +68,8 @@ def main():
         sys.exit(1)
 
     # 📁 Путь для сохранения
-    output_path = "res/lists/useragents/useragents.txt"
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    output_path = os.path.join(current_dir, "..", "res", "lists", "useragents", "useragents.txt")
 
     # 🔧 Создаём папки, если их нет
     os.makedirs(os.path.dirname(output_path), exist_ok=True)

@@ -58,7 +58,7 @@ def validate_target(args):
         print(f"{Fore.RED}❌ URL is required for HTTP attack{Style.RESET_ALL}")
         return False
     
-    if args.attack_type in ['tcp', 'udp', 'syn', 'dns', 'ntp']:
+    if args.attack_type in ['tcp', 'dns', 'slowloris']:
         if not args.target_ip:
             print(f"{Fore.RED}❌ --target-ip is required for {args.attack_type} attack{Style.RESET_ALL}")
             return False
@@ -334,12 +334,18 @@ def check_dependencies():
 
 async def main():
     """Главная функция"""
+    # Парсинг аргументов
+    args = parse_args()
+    
+    # Если только --help или без аргументов, показываем помощь
+    if len(sys.argv) == 1 or '--help' in sys.argv or '-h' in sys.argv:
+        from args import get_parser
+        get_parser().print_help()
+        return
+    
     # Проверка зависимостей
     if not check_dependencies():
         sys.exit(1)
-    
-    # Парсинг аргументов
-    args = parse_args()
     
     # Вывод баннера
     print(f"{Fore.CYAN}{'='*70}{Style.RESET_ALL}")
@@ -379,7 +385,7 @@ async def main():
         args.junk = True
     
     # Проверка прав для raw sockets
-    if args.attack_type in ['tcp', 'udp', 'syn'] and args.spoof_ip:
+    if args.attack_type in ['tcp', 'dns'] and args.spoof_ip:
         try:
             # Пробуем создать raw socket для проверки прав
             test_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)

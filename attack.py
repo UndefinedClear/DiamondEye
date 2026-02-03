@@ -7,7 +7,6 @@ import time
 from urllib.parse import urlparse
 from typing import List, Dict
 import psutil
-import argparse
 from utils import generate_headers, parse_data_size, random_string
 from colorama import Fore, Style
 

@@ -17,7 +17,8 @@ import re
 
 
 # --- Настройки ---
-OUTPUT_DIR = "wordlists"
+current_dir = os.path.dirname(os.path.abspath(__file__))
+OUTPUT_DIR = os.path.join(current_dir, "..", "wordlists")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # Источники wordlist (URL -> категория)
@@ -127,12 +128,10 @@ async def main():
     
     # Объединение
     all_paths = set()
-    category_paths = {}
     
     for paths in results:
         if isinstance(paths, list):
             all_paths.update(paths)
-            # Можно группировать по категории, если нужно
 
     # Сохранение
     combined_path = os.path.join(args.output, "combined.txt")
@@ -142,9 +141,6 @@ async def main():
     
     print(f"\n✅ Готово! Всего уникальных путей: {len(all_paths)}")
     print(f"💾 Сохранено: {combined_path}")
-
-    # Сохранить отдельно (если нужно)
-    # Можно добавить: --split — по категориям
 
 
 if __name__ == "__main__":

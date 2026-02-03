@@ -1,5 +1,6 @@
 # args.py
 import argparse
+import sys
 from utils import parse_data_size
 
 def validate_data_size(value):
@@ -8,7 +9,8 @@ def validate_data_size(value):
         raise argparse.ArgumentTypeError("Invalid data size: use 1024, 64k, 1m")
     return size
 
-def parse_args():
+def get_parser():
+    """Создание парсера аргументов"""
     parser = argparse.ArgumentParser(
         description="DiamondEye v10.0 — Advanced Multi-Layer DDoS Tool",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -21,6 +23,8 @@ Examples:
   Reconnaissance: python main.py target.com --recon
   Plugin System:  python main.py --list-plugins
   Plugin Execution: python main.py http://target.com --plugin Slowloris
+  
+For detailed help on each option, use: python main.py --help
         """
     )
     
@@ -30,8 +34,7 @@ Examples:
     # Тип атаки и цели
     attack_group = parser.add_argument_group('Attack Configuration')
     attack_group.add_argument('--attack-type', 
-                             choices=['http', 'tcp', 'udp', 'syn', 'dns', 'ntp', 
-                                     'memcached', 'minecraft', 'slowloris', 'amplification'],
+                             choices=['http', 'tcp', 'dns', 'slowloris'],
                              default='http', help='Type of attack (default: http)')
     attack_group.add_argument('--target-ip', help='Target IP for Layer4/Amplification attacks')
     attack_group.add_argument('--target-port', type=int, default=80, 
@@ -52,8 +55,8 @@ Examples:
     layer7_group.add_argument('-s', '--sockets', type=int, default=100, help='Connections per worker')
     layer7_group.add_argument('-m', '--methods', help='GET,POST,PUT,PATCH,ALL')
     layer7_group.add_argument('-u', '--useragents', help='User-Agent file')
-    layer7_group.add_argument('-n', '--no-ssl-check', action='store_true')
-    layer7_group.add_argument('-d', '--debug', action='store_true')
+    layer7_group.add_argument('-n', '--no-ssl-check', action='store_true', help='Disable SSL certificate verification')
+    layer7_group.add_argument('-d', '--debug', action='store_true', help='Enable debug mode')
     layer7_group.add_argument('-l', '--log', help='Save text report')
     layer7_group.add_argument('--json', help='Save JSON report')
     layer7_group.add_argument('--plot', help='Save RPS plot')
@@ -65,7 +68,6 @@ Examples:
                              help='Auto-fetch and rotate proxies')
     layer7_group.add_argument('--proxy-timeout', type=float, default=5.0,
                              help='Proxy check timeout in seconds')
-    layer7_group.add_argument('--tor', action='store_true', help='Use TOR network')
     layer7_group.add_argument('--http3', action='store_true', help='Use HTTP/3 (QUIC)')
     parser.add_argument('--websocket', action='store_true', help='WebSocket flood mode')
     parser.add_argument('--auth', help='Authorization token: Bearer <token>')
@@ -88,10 +90,6 @@ Examples:
     
     # Обход защиты
     bypass_group = parser.add_argument_group('Bypass & Evasion')
-    bypass_group.add_argument('--bypass-technique', choices=['cloudflare', 'ovh', 'waf', 'auto'],
-                             default='auto', help='WAF bypass technique')
-    bypass_group.add_argument('--cf-real-ip', action='store_true',
-                             help='Try to find real Cloudflare IP')
     bypass_group.add_argument('--rotate-ua', action='store_true',
                              help='Rotate User-Agents automatically')
     bypass_group.add_argument('--spoof-ip', action='store_true',
@@ -122,7 +120,7 @@ Examples:
     recon_group.add_argument('--recon-ports', type=str, default='21-25,53,80,443,3306,3389,8080',
                             help='Ports to scan (comma-separated or range)')
     recon_group.add_argument('--recon-save', help='Save reconnaissance report to file')
-    
+
     # Расширенные опции
     advanced_group = parser.add_argument_group('Advanced Options')
     advanced_group.add_argument('--packet-size', type=int, default=1024,
@@ -135,13 +133,15 @@ Examples:
     advanced_group.add_argument('--ttl', type=int, default=64,
                               help='IP TTL value for packets')
     
-    # Экспериментальные функции
-    experimental_group = parser.add_argument_group('Experimental')
-    experimental_group.add_argument('--ai-mode', action='store_true',
-                                  help='Use AI to optimize attack parameters')
-    experimental_group.add_argument('--stealth', action='store_true',
-                                  help='Enable stealth mode (slower, less detectable)')
-    experimental_group.add_argument('--pulse', action='store_true',
-                                  help='Pulse mode: alternating high/low intensity')
+    return parser
+
+def parse_args():
+    """Парсинг аргументов командной строки"""
+    parser = get_parser()
+    
+    # Если только --help, показываем помощь и выходим
+    if len(sys.argv) == 1:
+        parser.print_help()
+        sys.exit(0)
     
     return parser.parse_args()
