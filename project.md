@@ -91,7 +91,6 @@ DiamondEye v10.0 — это **многослойная платформа для
 │ • slowloris_plugin.py    • udp_custom_plugin │
 │ • Другие плагины                             │
 └──────────────────────────────────────────────┘
-
     ├────────────────────────────────────────────┐
     │                                            │
 ┌───▼──────┐                            ┌───────▼──────┐
@@ -3692,11 +3691,10 @@ class TestSecurity:
 
 ### 20.4. Контакты и поддержка
 
-- **GitHub**: [https://github.com/UndefinedClear/DiamondEye](https://github.com/UndefinedClear/DiamondEye)
+- **GitHub**: [DiamondEye](https://github.com/UndefinedClear/DiamondEye)
 - **Telegram автора**: [@pelikan6](https://t.me/pelikan6)
-- **Telegram сообщество**: [https://t.me/x_xffx_x](https://t.me/x_xffx_x)
+- **Telegram сообщество**: [DiamondEye project](https://t.me/x_xffx_x)
 - **Email**: larion626@gmail.com
-- **Документация**: [GitHub Wiki](https://github.com/UndefinedClear/DiamondEye/wiki)
 
 ### 20.5. Сообщество и вклад
 
@@ -3748,5 +3746,3 @@ class TestSecurity:
 ---
 
 **Конец технической документации DiamondEye v10.0**
-
-*Последнее обновление: 2025 | Версия документа: 3.0*

