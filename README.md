@@ -1,13 +1,25 @@
-<div style="flex: 1 1 100%; padding: 20px; border-radius: 12px; background: linear-gradient(135deg, #0b1120 0%, #1a2639 100%); color: white; margin-bottom: 10px;">
-<h1 style="font-size: 2.5em; margin-bottom: 5px;">💎 DiamondEye v10.0</h1>
-<h3 style="font-weight: normal; color: #a0c0ff; margin-top: 0;">Advanced Multi‑Layer Security Testing Platform</h3>
-<p style="font-size: 1.1em; max-width: 800px;">Высокопроизводительная платформа для тестирования безопасности и нагрузочного тестирования веб‑систем с модульной архитектурой и поддержкой многослойных атак.</p>
-<div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">
-<span style="background: #2a3a5a; padding: 5px 12px; border-radius: 20px;">🐍 Python 3.8+</span>
-<span style="background: #2a3a5a; padding: 5px 12px; border-radius: 20px;">⚡ Async/AIOHTTP</span>
-<span style="background: #2a3a5a; padding: 5px 12px; border-radius: 20px;">🧩 Plugin system</span>
-<span style="background: #2a3a5a; padding: 5px 12px; border-radius: 20px;">📊 Real‑time analytics</span>
-</div>
+# 🔥 DiamondEye v10.0 — Advanced Multi-Layer Security Testing Platform
+
+**DiamondEye** — это высокопроизводительная платформа для тестирования безопасности и нагрузочного тестирования веб-систем, построенная на модульной архитектуре с поддержкой многослойных атак.
+
+---
+
+## ⚖️ **ВАЖНО: ПРАВИЛА ЭТИЧНОГО ИСПОЛЬЗОВАНИЯ**
+
+> ⚠️ **ПРЕДУПРЕЖДЕНИЕ**: DiamondEye предназначен исключительно для:
+> - Тестирования систем, которые вам **принадлежат**
+> - Проведения пентестов **с письменного разрешения**
+> - Образовательных целей **в контролируемых лабораториях**
+> - Оценки устойчивости **собственной инфраструктуры**
+
+### 🚫 **ЗАПРЕЩЕНО ИСПОЛЬЗОВАТЬ ПРОТИВ:**
+- Государственных и военных ресурсов
+- Финансовых учреждений (банки, платежные системы)
+- Критической инфраструктуры (энергетика, медицина)
+- Облачных провайдеров и хостингов без разрешения
+- Любых систем без явного письменного согласия
+
+**Вы несете полную юридическую ответственность** за использование этого инструмента. Разработчики не несут ответственности за неправомерное применение.
 
 ---
 
@@ -664,4 +676,4 @@ class MyPlugin(BasePlugin):
 
 ---
 
-**Версия документации:** 10.0 | **Последнее обновление:** 2026
+**Версия документации:** 10.0 | **Последнее обновление:** 2025
