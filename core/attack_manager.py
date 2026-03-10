@@ -5,6 +5,7 @@ import signal
 import psutil
 from typing import Dict, Any, Optional
 import logging
+from urllib.parse import urlparse
 from colorama import Fore, Style
 
 # Импортируем новый движок HTTP-атак
@@ -207,6 +208,21 @@ class AttackManager:
     
     async def _start_http_attack(self):
         """Запуск HTTP атаки через новый движок HttpAttackEngine."""
+        
+        # Проверка на localhost
+        if self.args.url:
+            parsed = urlparse(self.args.url)
+            hostname = parsed.hostname.lower() if parsed.hostname else ""
+            
+            if hostname in ('localhost', '127.0.0.1', '0.0.0.0') or hostname.startswith('127.'):
+                logger.warning(f"{Fore.YELLOW}⚠️  Target is localhost!{Style.RESET_ALL}")
+                if not getattr(self.args, 'confirm_local', False):
+                    print(f"{Fore.RED}Attacking localhost may crash your system.{Style.RESET_ALL}")
+                    response = input(f"{Fore.YELLOW}Type 'I UNDERSTAND' to continue: {Style.RESET_ALL}")
+                    if response.strip().upper() != 'I UNDERSTAND':
+                        logger.info("Attack cancelled by user")
+                        return
+        
         # Подготовка прокси
         proxy = self.args.proxy
         if self.proxy_manager and self.proxy_manager.proxies:
@@ -241,7 +257,8 @@ class AttackManager:
             junk=self.args.junk,
             random_host=self.args.random_host,
             max_rps=self.args.max_rps,          
-            max_bandwidth=self.args.max_bandwidth 
+            max_bandwidth=self.args.max_bandwidth,
+            slow_connections=getattr(self.args, 'slow_connections', 1000)
         )
         
         self.active_attack = attack

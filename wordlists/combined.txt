@@ -1,3 +1,4 @@
+/!.gitignore
 /!.htaccess
 /!.htpasswd
 /%3f/
@@ -1693,6 +1694,9 @@
 /backup2021.sql
 /backup2022.sql
 /backup2023.sql
+/backup2024.sql
+/backup2025.sql
+/backup2026.sql
 /backup_migrate
 /backups
 /backups.7z
@@ -2771,6 +2775,7 @@
 /docebo
 /docedit
 /dock
+/docker-compose.yaml
 /docker-compose.yml
 /docroot
 /docs

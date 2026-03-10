@@ -146,6 +146,8 @@ For detailed help on each option, use: python main.py --help
     plugin_group.add_argument('--list-plugins', action='store_true',
                              help='List all available plugins')
     plugin_group.add_argument('--plugin-config', help='Plugin configuration file (JSON)')
+    plugin_group.add_argument('--disable-plugin-verification', action='store_true',
+                             help='Disable plugin hash verification (dangerous)')
     
     # === СИСТЕМА РАЗВЕДКИ ===
     recon_group = parser.add_argument_group('Reconnaissance')
@@ -175,6 +177,8 @@ For detailed help on each option, use: python main.py --help
     legal_group = parser.add_argument_group('Legal')
     legal_group.add_argument('--confirm-illegal', action='store_true',
                             help='Confirm understanding of legal implications for spoofing')
+    legal_group.add_argument('--confirm-local', action='store_true',
+                            help='Confirm attacking localhost')
     
     return parser
 

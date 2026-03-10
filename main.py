@@ -6,6 +6,7 @@ import os
 import socket
 import json
 import logging
+import time
 from urllib.parse import urlparse
 from datetime import datetime
 
@@ -26,7 +27,7 @@ except ImportError:
 
 from args import parse_args
 from core.attack_manager import AttackManager
-from plugins.plugin_manager import PluginManager
+from plugins.secure_plugin_manager import SecurePluginManager
 from recon.scanner import ReconScanner, quick_recon
 from colorama import Fore, Style, init
 import constants
@@ -163,8 +164,11 @@ def print_legal_warning(args):
 
 
 async def handle_plugins(args):
-    """Обработка плагинов."""
-    plugin_manager = PluginManager()
+    """Обработка плагинов с использованием безопасного менеджера."""
+    # Используем безопасный менеджер плагинов
+    plugin_manager = SecurePluginManager(
+        verify_signatures=not args.disable_plugin_verification
+    )
     
     if args.list_plugins:
         print(f"{Fore.CYAN}📦 Available plugins:{Style.RESET_ALL}")
