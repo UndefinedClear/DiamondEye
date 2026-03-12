@@ -4,12 +4,17 @@ import hashlib
 import json
 import os
 import inspect
+import logging
 from typing import Dict, List, Optional, Set
 from pathlib import Path
 import aiofiles
 import asyncio
+from colorama import Fore, Style
 
 from plugins.plugin_manager import BasePlugin, PluginInfo
+
+# Добавлен импорт logger
+logger = logging.getLogger(__name__)
 
 
 class PluginVerificationError(Exception):
