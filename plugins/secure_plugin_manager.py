@@ -13,7 +13,6 @@ from colorama import Fore, Style
 
 from plugins.plugin_manager import BasePlugin, PluginInfo
 
-# Добавлен импорт logger
 logger = logging.getLogger(__name__)
 
 
@@ -36,14 +35,13 @@ class SecurePluginManager:
         
         self.plugins: Dict[str, BasePlugin] = {}
         self.allowed_hashes: Set[str] = set()
-        self.plugin_hashes: Dict[str, str] = {}  # имя плагина -> хеш
+        self.plugin_hashes: Dict[str, str] = {}
         
         self._loaded = False
         self._lock = asyncio.Lock()
         
-        # Создаем директорию если нет
         self.plugins_dir.mkdir(exist_ok=True)
-        
+    
     async def load_allowed_hashes(self):
         """Загрузка списка разрешенных хешей."""
         if not self.allowed_hashes_file.exists():
@@ -55,6 +53,7 @@ class SecurePluginManager:
                 content = await f.read()
                 data = json.loads(content)
                 self.allowed_hashes = set(data.get('allowed_hashes', []))
+                self.plugin_hashes = data.get('plugins', {})
                 logger.info(f"Loaded {len(self.allowed_hashes)} allowed hashes")
         except Exception as e:
             logger.error(f"Failed to load allowed hashes: {e}")
@@ -85,13 +84,11 @@ class SecurePluginManager:
             return True
         
         plugin_hash = await self.calculate_plugin_hash(plugin_path)
+        plugin_name = plugin_path.stem
         
-        # Проверяем в белом списке
         if plugin_hash in self.allowed_hashes:
             return True
         
-        # Если нет в белом списке - запрашиваем подтверждение
-        plugin_name = plugin_path.stem
         print(f"\n{Fore.YELLOW}⚠️  Unknown plugin: {plugin_name}{Style.RESET_ALL}")
         print(f"{Fore.YELLOW}Hash: {plugin_hash}{Style.RESET_ALL}")
         print(f"{Fore.YELLOW}Do you want to allow this plugin? (y/N): {Style.RESET_ALL}", end="")
@@ -105,7 +102,7 @@ class SecurePluginManager:
         
         return False
     
-    async def scan_plugin_for_malware(self, plugin_path: Path) -> List[str]:
+    async def scan_plugin_for_malware(self, plugin_path: Path, plugin_hash: str) -> List[str]:
         """
         Базовое сканирование плагина на подозрительный код.
         """
@@ -114,7 +111,6 @@ class SecurePluginManager:
         try:
             content = plugin_path.read_text(encoding='utf-8')
             
-            # Проверка на опасные импорты
             dangerous_imports = [
                 'subprocess', 'os.system', 'os.popen', 'shutil.rmtree',
                 'eval(', 'exec(', '__import__', 'compile(', 'open(',
@@ -126,11 +122,9 @@ class SecurePluginManager:
                 if dangerous in content:
                     warnings.append(f"Contains {dangerous}")
             
-            # Проверка на запуск shell команд
             if 'import subprocess' in content or 'os.system' in content:
                 warnings.append("May execute system commands")
             
-            # Проверка на обфускацию
             lines = content.split('\n')
             if any(len(line) > 500 for line in lines):
                 warnings.append("Contains very long lines (possible obfuscation)")
@@ -143,43 +137,95 @@ class SecurePluginManager:
         
         return warnings
     
+    async def get_plugin_files(self) -> List[Path]:
+        """Get all .py files in plugins directory (excluding system files)."""
+        plugin_files = list(self.plugins_dir.glob("*.py"))
+        plugin_files.extend(self.plugins_dir.glob("*/*.py"))
+        
+        exclude = ['__init__.py', 'plugin_manager.py', 'secure_plugin_manager.py', 'example_plugin.py']
+        plugin_files = [f for f in plugin_files if f.name not in exclude]
+        
+        return plugin_files
+    
+    async def add_plugin(self, plugin_path: str, force: bool = False) -> bool:
+        """
+        Add a new plugin from file.
+        
+        Args:
+            plugin_path: Path to plugin file (absolute or relative to plugins_dir)
+            force: If True, skip warnings and auto-approve
+        
+        Returns:
+            True if added successfully
+        """
+        path = Path(plugin_path)
+        if not path.is_absolute():
+            path = self.plugins_dir / path
+            if not path.exists() and not path.suffix:
+                path = path.with_suffix('.py')
+        
+        if not path.exists():
+            logger.error(f"Plugin not found: {path}")
+            return False
+        
+        if path.suffix != '.py':
+            logger.error(f"Plugin must be a .py file: {path}")
+            return False
+        
+        plugin_hash = await self.calculate_plugin_hash(path)
+        
+        if plugin_hash in self.allowed_hashes:
+            logger.info(f"Plugin already allowed: {path.name}")
+            return True
+        
+        warnings = await self.scan_plugin_for_malware(path, plugin_hash)
+        
+        print(f"\n{Fore.CYAN}📦 Plugin: {path.name}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}📁 Path: {path}{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}🔑 Hash: {plugin_hash}{Style.RESET_ALL}")
+        
+        if warnings:
+            print(f"\n{Fore.YELLOW}⚠️  Security warnings:{Style.RESET_ALL}")
+            for w in warnings:
+                print(f"  - {w}")
+            print()
+        
+        if not force:
+            print(f"{Fore.YELLOW}Do you want to allow this plugin? (y/N): {Style.RESET_ALL}", end="")
+            response = input().strip().lower()
+            if response != 'y':
+                print(f"{Fore.RED}Cancelled.{Style.RESET_ALL}")
+                return False
+        else:
+            print(f"{Fore.YELLOW}Force mode: auto-approving plugin{Style.RESET_ALL}")
+        
+        self.allowed_hashes.add(plugin_hash)
+        self.plugin_hashes[path.stem] = plugin_hash
+        await self.save_allowed_hashes()
+        
+        print(f"{Fore.GREEN}✅ Plugin added successfully!{Style.RESET_ALL}")
+        print(f"{Fore.CYAN}💡 Run --list-plugins to see it{Style.RESET_ALL}")
+        
+        return True
+    
     async def discover_plugins(self):
-        """Безопасное обнаружение плагинов."""
+        """Load only approved plugins."""
         async with self._lock:
             if self._loaded:
                 return
             
             await self.load_allowed_hashes()
             
-            # Ищем файлы плагинов
-            plugin_files = list(self.plugins_dir.glob("*.py"))
-            plugin_files.extend(self.plugins_dir.glob("*/*.py"))
-            
-            # Исключаем системные файлы
-            plugin_files = [f for f in plugin_files 
-                          if not f.name.startswith('__') 
-                          and f.name != 'plugin_manager.py'
-                          and f.name != 'secure_plugin_manager.py']
+            plugin_files = await self.get_plugin_files()
             
             for plugin_file in plugin_files:
+                plugin_hash = await self.calculate_plugin_hash(plugin_file)
+                
+                if plugin_hash not in self.allowed_hashes:
+                    logger.debug(f"Skipping unapproved plugin: {plugin_file.name}")
+                    continue
+                
                 try:
-                    # Проверка целостности
-                    if not await self.verify_plugin(plugin_file):
-                        logger.warning(f"Plugin verification failed: {plugin_file.name}")
-                        continue
-                    
-                    # Сканирование на malware
-                    warnings = await self.scan_plugin_for_malware(plugin_file)
-                    if warnings and self.verify_signatures:
-                        print(f"{Fore.YELLOW}⚠️  Plugin {plugin_file.name} warnings:{Style.RESET_ALL}")
-                        for w in warnings:
-                            print(f"  - {w}")
-                        
-                        print(f"{Fore.YELLOW}Continue loading? (y/N): {Style.RESET_ALL}", end="")
-                        if input().strip().lower() != 'y':
-                            continue
-                    
-                    # Загрузка в изолированном пространстве имен
                     module_name = f"plugins.{plugin_file.stem}"
                     spec = importlib.util.spec_from_file_location(module_name, plugin_file)
                     
@@ -188,15 +234,8 @@ class SecurePluginManager:
                         continue
                     
                     module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
                     
-                    # Загружаем в ограниченном окружении
-                    try:
-                        spec.loader.exec_module(module)
-                    except Exception as e:
-                        logger.error(f"Failed to execute plugin {plugin_file.name}: {e}")
-                        continue
-                    
-                    # Ищем классы плагинов
                     for name, obj in inspect.getmembers(module):
                         if (inspect.isclass(obj) and 
                             issubclass(obj, BasePlugin) and 
@@ -231,7 +270,6 @@ class SecurePluginManager:
         if not plugin:
             raise ValueError(f"Plugin {plugin_name} not found")
         
-        # Выполняем с таймаутом
         try:
             result = await asyncio.wait_for(
                 plugin.execute(target, **kwargs),

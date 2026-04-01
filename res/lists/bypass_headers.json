@@ -1,0 +1,29 @@
+{
+  "cloudflare": {
+    "CF-Connecting-IP": "RANDOM_IP",
+    "X-Forwarded-For": "RANDOM_IP",
+    "X-Real-IP": "RANDOM_IP",
+    "True-Client-IP": "RANDOM_IP",
+    "CF-RAY": "RANDOM_16_HEX",
+    "CF-IPCountry": "RANDOM_COUNTRY"
+  },
+  "ovh": {
+    "X-Forwarded-Proto": "https",
+    "X-Forwarded-Ssl": "on",
+    "X-Forwarded-Port": "443",
+    "X-Forwarded-Host": "RANDOM_LOCALHOST",
+    "X-Client-IP": "RANDOM_IP",
+    "X-Originating-IP": "RANDOM_IP"
+  },
+  "waf": {
+    "X-CSRFToken": "RANDOM_16_HEX",
+    "X-Requested-With": "XMLHttpRequest",
+    "X-Ajax-Navigation": "true",
+    "X-Request-ID": "RANDOM_32_HEX"
+  },
+  "legit_session": {
+    "Cookie": "session=RANDOM_32_HEX; _csrf=RANDOM_16_HEX",
+    "X-CSRF-Token": "RANDOM_16_HEX",
+    "Authorization": "Bearer RANDOM_32_HEX"
+  }
+}

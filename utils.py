@@ -3,15 +3,14 @@ import random
 import string
 import logging
 from typing import List, Optional
+from pathlib import Path
 
-# Настройка логгера для модуля
 logger = logging.getLogger(__name__)
 
+ROOT_DIR = Path(__file__).parent
+
+
 def random_string(length: int, use_secrets: bool = False) -> str:
-    """
-    Генерация случайной строки заданной длины.
-    Если use_secrets=True, используется криптостойкий генератор (для токенов).
-    """
     length = max(1, length)
     if use_secrets:
         import secrets
@@ -20,78 +19,75 @@ def random_string(length: int, use_secrets: bool = False) -> str:
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
-def parse_data_size(size_str: str) -> int:
-    """Преобразование строки размера (например '10k', '2m') в байты."""
-    if not size_str or size_str.strip() == "0":
-        return 0
-    size_str = size_str.strip().lower()
+def load_useragents_from_file(filepath: str = None) -> List[str]:
+    if filepath is None:
+        filepath = ROOT_DIR / "res" / "lists" / "useragents" / "useragents.txt"
+    
     try:
-        if size_str.endswith(('k', 'kb')):
-            val = float(size_str.rstrip('kb').strip())
-            return int(max(0, val * 1024))
-        elif size_str.endswith(('m', 'mb')):
-            val = float(size_str.rstrip('mb').strip())
-            return int(max(0, val * 1024 * 1024))
-        else:
-            val = float(size_str)
-            return int(max(0, val))
-    except (ValueError, TypeError) as e:
-        logger.error(f"Invalid data size: {size_str} - {e}")
-        return 0
-
-
-def generate_headers(host: str, useragents: List[str], referers: List[str],
-                     use_junk: bool = False, use_random_host: bool = False,
-                     header_flood: bool = False, auth_token: str = None) -> dict:
-    """Генерация HTTP-заголовков для запроса."""
-    ua = random.choice(useragents) if useragents else "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"
-    referer = random.choice(referers) if referers else "http://google.com/"
-
-    headers = {
-        'User-Agent': ua,
-        'Referer': referer,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'gzip, deflate',
-        'Connection': 'keep-alive',
-    }
-
-    if use_random_host:
-        headers['Host'] = f"{random_string(8)}.{host}"
-    else:
-        headers['Host'] = host
-
-    if auth_token:
-        headers['Authorization'] = f"Bearer {auth_token}"
-
-    if use_junk:
-        count = 20 if header_flood else random.randint(3, 8)
-        for _ in range(count):
-            headers[f'X-{random_string(random.randint(3, 12))}'] = random_string(random.randint(5, 20))
-
-    return headers
-
-
-class DataPool:
-    """
-    Пул предварительно сгенерированных данных для тела запроса.
-    Позволяет избежать генерации на каждый запрос.
-    """
-    def __init__(self, data_size: int, pool_size: int = 100):
-        self.data_size = data_size
-        self.pool_size = pool_size
-        self._pool: List[str] = []
-        self._generate()
-
-    def _generate(self):
-        for _ in range(self.pool_size):
-            if random.random() < 0.5:
-                # JSON-подобный payload
-                payload_size = max(1, self.data_size - 15)
-                data = f'{{"d": "{random_string(payload_size)}"}}'
+        with open(filepath, 'r', encoding='utf-8') as f:
+            uas = [line.strip() for line in f if line.strip()]
+            if uas:
+                logger.info(f"Loaded {len(uas)} user agents from {filepath}")
+                return uas
             else:
-                data = 'X' * self.data_size
-            self._pool.append(data)
+                logger.warning(f"User agent file {filepath} is empty")
+                return []
+    except Exception as e:
+        logger.warning(f"Failed to load useragents from {filepath}: {e}")
+        return []
 
-    def get_random(self) -> str:
-        return random.choice(self._pool)
+
+def load_http_methods() -> list:
+    methods_file = ROOT_DIR / "wordlists" / "http_methods.txt"
+    try:
+        with open(methods_file, 'r') as f:
+            methods = [line.strip().upper() for line in f if line.strip()]
+            if methods:
+                return methods
+    except Exception as e:
+        logger.warning(f"Failed to load HTTP methods: {e}")
+    return ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD']
+
+
+def load_wordlist_paths(filepath: str = None) -> List[str]:
+    if filepath is None:
+        filepath = ROOT_DIR / "wordlists" / "combined.txt"
+    
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            paths = [line.strip() for line in f if line.strip() and len(line) < 200]
+            if paths:
+                logger.info(f"Loaded {len(paths)} paths from {filepath}")
+                return paths
+            else:
+                logger.warning(f"Wordlist file {filepath} is empty")
+                return []
+    except Exception as e:
+        logger.warning(f"Failed to load wordlist from {filepath}: {e}")
+        return []
+
+
+def load_subdomains_list(filepath: str = None) -> List[str]:
+    if filepath is None:
+        filepath = ROOT_DIR / "wordlists" / "subdomains.txt"
+    
+    if not filepath.exists():
+        try:
+            paths = load_wordlist_paths()
+            subs = [p.strip('/') for p in paths if p.count('/') == 1 and p[1:].isalnum()]
+            if subs:
+                logger.info(f"Generated {len(subs)} subdomains from wordlist")
+                return subs[:500]
+        except:
+            pass
+    
+    try:
+        with open(filepath, 'r', encoding='utf-8') as f:
+            subs = [line.strip() for line in f if line.strip() and '.' not in line and '/' not in line]
+            if subs:
+                logger.info(f"Loaded {len(subs)} subdomains from {filepath}")
+                return subs
+    except Exception as e:
+        logger.warning(f"Failed to load subdomains from {filepath}: {e}")
+    
+    return []

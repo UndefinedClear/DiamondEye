@@ -1,0 +1,68 @@
+{
+  "target": "httpbin.org",
+  "timestamp": "2026-04-01T17:22:32.669988",
+  "dns_records": {
+    "A": [
+      "52.6.211.202",
+      "52.71.170.232",
+      "54.172.102.128",
+      "44.218.58.97",
+      "32.193.85.54",
+      "52.71.108.149"
+    ],
+    "NS": [
+      "ns-1053.awsdns-03.org.",
+      "ns-1555.awsdns-02.co.uk.",
+      "ns-173.awsdns-21.com.",
+      "ns-884.awsdns-46.net."
+    ],
+    "TXT": [
+      "\"v=spf1 include:%{i}._ip.%{h}._ehlo.%{d}._spf.vali.email ~all\""
+    ],
+    "SOA": [
+      "ns-1053.awsdns-03.org. awsdns-hostmaster.amazon.com. 1 7200 900 1209600 86400"
+    ]
+  },
+  "ports": [
+    80,
+    443
+  ],
+  "services": {
+    "80": "ServiceInfo(port=80, service='HTTP', banner='HTTP/1.1 200 OK\\r\\nDate: Wed, 01 Apr 2026 14:22:33 GMT\\r\\nContent-Type: text/html; charset=utf-8\\r\\nContent-Length: 9593\\r\\nConnection: close\\r\\nServer: gunicorn/19.9.0\\r\\nAccess-Control-Allow-Origin: *\\r\\nAccess-C', ssl=False, http_title=None, http_server=None)",
+    "443": "ServiceInfo(port=443, service='HTTPS (gunicorn/19.9.0)', banner='HTTP/1.1 400 Bad Request\\r\\nServer: awselb/2.0\\r\\nDate: Wed, 01 Apr 2026 14:22:32 GMT\\r\\nContent-Type: text/html\\r\\nContent-Length: 220\\r\\nConnection: close\\r\\n\\r\\n<html>\\r\\n<head><title>400 The plain HTTP request wa', ssl=False, http_title='httpbin.org', http_server='gunicorn/19.9.0')"
+  },
+  "ssl": {
+    "443": {
+      "supported": true,
+      "certificate": {
+        "issuer": {
+          "countryName": "US",
+          "organizationName": "Amazon",
+          "commonName": "Amazon RSA 2048 M03"
+        },
+        "subject": {
+          "commonName": "httpbin.org"
+        },
+        "notAfter": "Aug 17 23:59:59 2026 GMT"
+      },
+      "protocols": [
+        "TLSv1.2+"
+      ],
+      "weak": []
+    }
+  },
+  "subdomains": [],
+  "vulnerabilities": [],
+  "technologies": [],
+  "sensitive_files": [],
+  "waf": null,
+  "wayback_urls": [],
+  "parsed_url": {
+    "scheme": "http",
+    "netloc": "httpbin.org",
+    "hostname": "httpbin.org",
+    "port": null,
+    "path": ""
+  },
+  "scan_duration": 305.400427
+}

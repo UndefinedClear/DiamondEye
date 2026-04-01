@@ -1,0 +1,62 @@
+{
+  "target": "www.evades2.depuresu.net",
+  "timestamp": "2026-03-14T18:36:34.220543",
+  "dns_records": {
+    "A": [
+      "103.45.246.247"
+    ]
+  },
+  "ports": [
+    22,
+    80,
+    443
+  ],
+  "services": {
+    "22": "ServiceInfo(port=22, service='SSH', banner='SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.11', ssl=False, http_title=None, http_server=None, vulnerabilities=[])",
+    "80": "ServiceInfo(port=80, service='HTTP (nginx/1.18.0 (Ubuntu))', banner='HTTP/1.1 200 OK\\r\\nServer: nginx/1.18.0 (Ubuntu)\\r\\nDate: Sat, 14 Mar 2026 15:36:34 GMT\\r\\nContent-Type: text/html; charset=UTF-8\\r\\nContent-Length: 115492\\r\\nConnection: close\\r\\nX-Powered-By: Express\\r\\nAccept-Ra', ssl=False, http_title='Evades2', http_server='nginx/1.18.0 (Ubuntu)', vulnerabilities=[])",
+    "443": "ServiceInfo(port=443, service='HTTPS (nginx/1.18.0 (Ubuntu))', banner='HTTP/1.1 400 Bad Request\\r\\nServer: nginx/1.18.0 (Ubuntu)\\r\\nDate: Sat, 14 Mar 2026 15:36:34 GMT\\r\\nContent-Type: text/html\\r\\nContent-Length: 264\\r\\nConnection: close\\r\\n\\r\\n<html>\\r\\n<head><title>400 The plain HTTP', ssl=False, http_title='Welcome to nginx!', http_server='nginx/1.18.0 (Ubuntu)', vulnerabilities=[])"
+  },
+  "ssl": {},
+  "subdomains": [],
+  "vulnerabilities": [],
+  "technologies": [],
+  "http_info": {},
+  "sensitive_files": [],
+  "security_headers": {
+    "present": [],
+    "missing": [
+      {
+        "header": "X-Frame-Options",
+        "description": "Clickjacking protection"
+      },
+      {
+        "header": "X-XSS-Protection",
+        "description": "XSS protection"
+      },
+      {
+        "header": "X-Content-Type-Options",
+        "description": "MIME sniffing"
+      },
+      {
+        "header": "Content-Security-Policy",
+        "description": "CSP"
+      },
+      {
+        "header": "Strict-Transport-Security",
+        "description": "HSTS"
+      },
+      {
+        "header": "Referrer-Policy",
+        "description": "Referrer policy"
+      }
+    ]
+  },
+  "parsed_url": {
+    "scheme": "http",
+    "netloc": "www.evades2.depuresu.net",
+    "hostname": "www.evades2.depuresu.net",
+    "port": null,
+    "path": ""
+  },
+  "scan_duration": 7.028318
+}

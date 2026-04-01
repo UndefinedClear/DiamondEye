@@ -1,0 +1,10 @@
+{
+  "allowed_hashes": [
+    "42d5dfec207159d6ed110835df5de574234684687e41c5863cbf8e7b24fd1cf5",
+    "4240fbea7082fe0986f3379efd22f1e5f7de6999e1cce9d8e75b0520b42c9cb5"
+  ],
+  "plugins": {
+    "slowloris_plugin": "4240fbea7082fe0986f3379efd22f1e5f7de6999e1cce9d8e75b0520b42c9cb5",
+    "udp_custom_plugin": "42d5dfec207159d6ed110835df5de574234684687e41c5863cbf8e7b24fd1cf5"
+  }
+}

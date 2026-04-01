@@ -9,7 +9,7 @@ from colorama import Fore, Style
 
 
 class ResourceMonitor:
-    """Продвинутый мониторинг системных ресурсов"""
+    """Продвинутый мониторинг системных ресурсов (асинхронная версия)"""
     
     def __init__(self, alert_threshold: int = 90):
         self.start_time = time.time()
@@ -26,28 +26,62 @@ class ResourceMonitor:
         self.alerts = 0
         
         # Базовые значения
-        self.net_io_start = psutil.net_io_counters()
-        self.disk_io_start = psutil.disk_io_counters()
+        self.net_io_start = None
+        self.disk_io_start = None
         
         # Флаги
         self._monitoring = False
-        
+        self._monitor_task: Optional[asyncio.Task] = None
+        self._shutdown_event = asyncio.Event()
+    
+    async def _get_cpu_percent(self) -> float:
+        """Асинхронное получение CPU%"""
+        return await asyncio.to_thread(psutil.cpu_percent, interval=None)
+    
+    async def _get_ram_percent(self) -> float:
+        """Асинхронное получение RAM%"""
+        mem = await asyncio.to_thread(psutil.virtual_memory)
+        return mem.percent
+    
+    async def _get_net_io(self):
+        """Асинхронное получение сетевых счетчиков"""
+        return await asyncio.to_thread(psutil.net_io_counters)
+    
+    async def _get_disk_io(self):
+        """Асинхронное получение дисковых счетчиков"""
+        return await asyncio.to_thread(psutil.disk_io_counters)
+    
+    async def _get_net_connections(self) -> int:
+        """Асинхронное получение количества соединений"""
+        try:
+            conns = await asyncio.to_thread(psutil.net_connections)
+            return len(conns)
+        except Exception:
+            return 0
+    
     async def monitor(self, interval: float = 1.0):
-        """Запуск мониторинга ресурсов"""
+        """Запуск мониторинга ресурсов (асинхронно)"""
         self._monitoring = True
+        self._shutdown_event.clear()
+        
+        # Получаем начальные значения (синхронно, один раз)
+        self.net_io_start = await self._get_net_io()
+        self.disk_io_start = await self._get_disk_io()
         
         print(f"{Fore.CYAN}📊 Starting resource monitoring (interval: {interval}s){Style.RESET_ALL}")
         
         last_net = self.net_io_start
         last_disk = self.disk_io_start
         
-        while self._monitoring:
+        while self._monitoring and not self._shutdown_event.is_set():
             try:
-                # Собираем метрики
-                cpu_percent = psutil.cpu_percent(interval=None)
-                ram_percent = psutil.virtual_memory().percent
-                net_io = psutil.net_io_counters()
-                disk_io = psutil.disk_io_counters() if psutil.disk_io_counters() else None
+                # Собираем метрики асинхронно
+                cpu_percent, ram_percent, net_io, disk_io = await asyncio.gather(
+                    self._get_cpu_percent(),
+                    self._get_ram_percent(),
+                    self._get_net_io(),
+                    self._get_disk_io()
+                )
                 
                 # Вычисляем разницу по сети
                 sent_bytes = net_io.bytes_sent - last_net.bytes_sent
@@ -72,11 +106,8 @@ class ResourceMonitor:
                 })
                 
                 # Подсчет активных соединений
-                try:
-                    connections = len(psutil.net_connections())
-                    self.connection_history.append(connections)
-                except:
-                    connections = 0
+                connections = await self._get_net_connections()
+                self.connection_history.append(connections)
                 
                 # Проверка на превышение порога
                 alerts = []
@@ -103,8 +134,10 @@ class ResourceMonitor:
                 # Ждем интервал
                 await asyncio.sleep(interval)
                 
+            except asyncio.CancelledError:
+                break
             except Exception as e:
-                if 'debug' in globals() and globals()['debug']:
+                if self._monitoring:
                     print(f"{Fore.YELLOW}⚠️  Monitor error: {e}{Style.RESET_ALL}")
                 await asyncio.sleep(interval)
     
@@ -228,6 +261,7 @@ class ResourceMonitor:
     def stop(self):
         """Остановка мониторинга"""
         self._monitoring = False
+        self._shutdown_event.set()
     
     def print_final_report(self):
         """Вывод финального отчета"""

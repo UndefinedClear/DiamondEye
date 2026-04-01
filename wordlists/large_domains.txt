@@ -1,0 +1,6 @@
+ripe.net
+isc.org
+arin.net
+lacnic.net
+afrinic.net
+dns.google
